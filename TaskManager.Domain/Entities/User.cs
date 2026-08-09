@@ -1,4 +1,5 @@
 ﻿using System.Net.Mail;
+using TaskManager.Domain.Exceptions;
 
 namespace TaskManager.Domain.Entities;
 
@@ -38,7 +39,10 @@ public sealed class User
         var preparedDisplayName = PrepareDisplayName(displayName);
 
         ValidatePasswordHash(passwordHash);
-        EnsureUtc(createdAtUtc, nameof(createdAtUtc));
+
+        EnsureUtc(
+            createdAtUtc,
+            nameof(createdAtUtc));
 
         return new User
         {
@@ -56,11 +60,17 @@ public sealed class User
         string displayName,
         DateTimeOffset changedAtUtc)
     {
-        var preparedDisplayName = PrepareDisplayName(displayName);
+        var preparedDisplayName =
+            PrepareDisplayName(displayName);
 
-        EnsureValidChangeTime(changedAtUtc, nameof(changedAtUtc));
+        EnsureValidChangeTime(
+            changedAtUtc,
+            nameof(changedAtUtc));
 
-        if (DisplayName == preparedDisplayName)
+        if (string.Equals(
+                DisplayName,
+                preparedDisplayName,
+                StringComparison.Ordinal))
         {
             return;
         }
@@ -74,9 +84,15 @@ public sealed class User
         DateTimeOffset changedAtUtc)
     {
         ValidatePasswordHash(passwordHash);
-        EnsureValidChangeTime(changedAtUtc, nameof(changedAtUtc));
 
-        if (PasswordHash == passwordHash)
+        EnsureValidChangeTime(
+            changedAtUtc,
+            nameof(changedAtUtc));
+
+        if (string.Equals(
+                PasswordHash,
+                passwordHash,
+                StringComparison.Ordinal))
         {
             return;
         }
@@ -87,7 +103,9 @@ public sealed class User
 
     public void Activate(DateTimeOffset changedAtUtc)
     {
-        EnsureValidChangeTime(changedAtUtc, nameof(changedAtUtc));
+        EnsureValidChangeTime(
+            changedAtUtc,
+            nameof(changedAtUtc));
 
         if (IsActive)
         {
@@ -100,7 +118,9 @@ public sealed class User
 
     public void Deactivate(DateTimeOffset changedAtUtc)
     {
-        EnsureValidChangeTime(changedAtUtc, nameof(changedAtUtc));
+        EnsureValidChangeTime(
+            changedAtUtc,
+            nameof(changedAtUtc));
 
         if (!IsActive)
         {
@@ -115,7 +135,7 @@ public sealed class User
     {
         if (string.IsNullOrWhiteSpace(email))
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Email cannot be empty.",
                 nameof(email));
         }
@@ -124,13 +144,16 @@ public sealed class User
 
         if (preparedEmail.Length > MaxEmailLength)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 $"Email cannot exceed {MaxEmailLength} characters.",
                 nameof(email));
         }
 
         var isValidEmail =
-            MailAddress.TryCreate(preparedEmail, out var parsedEmail) &&
+            MailAddress.TryCreate(
+                preparedEmail,
+                out var parsedEmail)
+            &&
             string.Equals(
                 parsedEmail.Address,
                 preparedEmail,
@@ -138,7 +161,7 @@ public sealed class User
 
         if (!isValidEmail)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Email has an invalid format.",
                 nameof(email));
         }
@@ -146,11 +169,12 @@ public sealed class User
         return preparedEmail;
     }
 
-    private static string PrepareDisplayName(string displayName)
+    private static string PrepareDisplayName(
+        string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Display name cannot be empty.",
                 nameof(displayName));
         }
@@ -159,14 +183,14 @@ public sealed class User
 
         if (preparedDisplayName.Length < MinDisplayNameLength)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 $"Display name must contain at least {MinDisplayNameLength} characters.",
                 nameof(displayName));
         }
 
         if (preparedDisplayName.Length > MaxDisplayNameLength)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 $"Display name cannot exceed {MaxDisplayNameLength} characters.",
                 nameof(displayName));
         }
@@ -174,11 +198,12 @@ public sealed class User
         return preparedDisplayName;
     }
 
-    private static void ValidatePasswordHash(string passwordHash)
+    private static void ValidatePasswordHash(
+        string passwordHash)
     {
         if (string.IsNullOrWhiteSpace(passwordHash))
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Password hash cannot be empty.",
                 nameof(passwordHash));
         }
@@ -188,12 +213,22 @@ public sealed class User
         DateTimeOffset changedAtUtc,
         string parameterName)
     {
-        EnsureUtc(changedAtUtc, parameterName);
+        EnsureUtc(
+            changedAtUtc,
+            parameterName);
 
         if (changedAtUtc < CreatedAtUtc)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Change time cannot be earlier than user creation time.",
+                parameterName);
+        }
+
+        if (UpdatedAtUtc.HasValue &&
+            changedAtUtc < UpdatedAtUtc.Value)
+        {
+            throw new DomainValidationException(
+                "Change time cannot be earlier than the previous change time.",
                 parameterName);
         }
     }
@@ -204,7 +239,7 @@ public sealed class User
     {
         if (value.Offset != TimeSpan.Zero)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Date and time must be in UTC.",
                 parameterName);
         }

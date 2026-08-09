@@ -1,4 +1,5 @@
 ﻿using TaskManager.Domain.Enums;
+using TaskManager.Domain.Exceptions;
 
 namespace TaskManager.Domain.Entities;
 
@@ -41,7 +42,10 @@ public sealed class ProjectMember
             "User identifier cannot be empty.");
 
         ValidateRole(role);
-        EnsureUtc(joinedAtUtc, nameof(joinedAtUtc));
+
+        EnsureUtc(
+            joinedAtUtc,
+            nameof(joinedAtUtc));
 
         return new ProjectMember
         {
@@ -58,6 +62,7 @@ public sealed class ProjectMember
         DateTimeOffset changedAtUtc)
     {
         EnsureActive();
+
         ValidateRole(role);
 
         EnsureValidChangeTime(
@@ -107,8 +112,18 @@ public sealed class ProjectMember
     {
         if (!IsActive)
         {
-            throw new InvalidOperationException(
+            throw new DomainConflictException(
                 "Removed project member cannot be modified.");
+        }
+    }
+
+    private static void ValidateRole(ProjectMemberRole role)
+    {
+        if (!Enum.IsDefined(role))
+        {
+            throw new DomainValidationException(
+                $"Unsupported project member role: {role}.",
+                nameof(role));
         }
     }
 
@@ -119,20 +134,9 @@ public sealed class ProjectMember
     {
         if (identifier == Guid.Empty)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 errorMessage,
                 parameterName);
-        }
-    }
-
-    private static void ValidateRole(ProjectMemberRole role)
-    {
-        if (!Enum.IsDefined(role))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(role),
-                role,
-                "Unsupported project member role.");
         }
     }
 
@@ -140,11 +144,13 @@ public sealed class ProjectMember
         DateTimeOffset changedAtUtc,
         string parameterName)
     {
-        EnsureUtc(changedAtUtc, parameterName);
+        EnsureUtc(
+            changedAtUtc,
+            parameterName);
 
         if (changedAtUtc < JoinedAtUtc)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Change time cannot be earlier than the member joining time.",
                 parameterName);
         }
@@ -152,7 +158,7 @@ public sealed class ProjectMember
         if (UpdatedAtUtc.HasValue &&
             changedAtUtc < UpdatedAtUtc.Value)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Change time cannot be earlier than the previous change time.",
                 parameterName);
         }
@@ -164,7 +170,7 @@ public sealed class ProjectMember
     {
         if (value.Offset != TimeSpan.Zero)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Date and time must be in UTC.",
                 parameterName);
         }

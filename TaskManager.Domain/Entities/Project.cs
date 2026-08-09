@@ -1,4 +1,6 @@
-﻿namespace TaskManager.Domain.Entities;
+﻿using TaskManager.Domain.Exceptions;
+
+namespace TaskManager.Domain.Entities;
 
 public sealed class Project
 {
@@ -37,7 +39,9 @@ public sealed class Project
         var preparedName = PrepareName(name);
         var preparedDescription = PrepareDescription(description);
 
-        EnsureUtc(createdAtUtc, nameof(createdAtUtc));
+        EnsureUtc(
+            createdAtUtc,
+            nameof(createdAtUtc));
 
         return new Project
         {
@@ -135,7 +139,7 @@ public sealed class Project
     {
         if (IsArchived)
         {
-            throw new InvalidOperationException(
+            throw new DomainConflictException(
                 "Archived project cannot be modified.");
         }
     }
@@ -144,7 +148,7 @@ public sealed class Project
     {
         if (ownerId == Guid.Empty)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Project owner identifier cannot be empty.",
                 nameof(ownerId));
         }
@@ -154,7 +158,7 @@ public sealed class Project
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Project name cannot be empty.",
                 nameof(name));
         }
@@ -163,14 +167,14 @@ public sealed class Project
 
         if (preparedName.Length < MinNameLength)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 $"Project name must contain at least {MinNameLength} characters.",
                 nameof(name));
         }
 
         if (preparedName.Length > MaxNameLength)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 $"Project name cannot exceed {MaxNameLength} characters.",
                 nameof(name));
         }
@@ -190,7 +194,7 @@ public sealed class Project
 
         if (preparedDescription.Length > MaxDescriptionLength)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 $"Project description cannot exceed {MaxDescriptionLength} characters.",
                 nameof(description));
         }
@@ -202,11 +206,13 @@ public sealed class Project
         DateTimeOffset changedAtUtc,
         string parameterName)
     {
-        EnsureUtc(changedAtUtc, parameterName);
+        EnsureUtc(
+            changedAtUtc,
+            parameterName);
 
         if (changedAtUtc < CreatedAtUtc)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Change time cannot be earlier than project creation time.",
                 parameterName);
         }
@@ -214,7 +220,7 @@ public sealed class Project
         if (UpdatedAtUtc.HasValue &&
             changedAtUtc < UpdatedAtUtc.Value)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Change time cannot be earlier than the previous change time.",
                 parameterName);
         }
@@ -226,7 +232,7 @@ public sealed class Project
     {
         if (value.Offset != TimeSpan.Zero)
         {
-            throw new ArgumentException(
+            throw new DomainValidationException(
                 "Date and time must be in UTC.",
                 parameterName);
         }
