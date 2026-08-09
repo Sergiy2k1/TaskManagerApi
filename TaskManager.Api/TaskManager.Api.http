@@ -1,0 +1,5 @@
+@host = http://localhost:5135
+
+### Перевірка, що API працює
+GET {{host}}/api/ping
+Accept: application/json
