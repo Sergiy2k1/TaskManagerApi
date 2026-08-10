@@ -130,6 +130,12 @@ public sealed class User
         IsActive = false;
         UpdatedAtUtc = changedAtUtc;
     }
+    public static string NormalizeEmail(string email)
+    {
+        var preparedEmail = PrepareEmail(email);
+
+        return preparedEmail.ToUpperInvariant();
+    }
 
     private static string PrepareEmail(string email)
     {
@@ -232,6 +238,8 @@ public sealed class User
                 parameterName);
         }
     }
+    
+    
 
     private static void EnsureUtc(
         DateTimeOffset value,
