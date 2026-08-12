@@ -1,15 +1,28 @@
 @host = http://localhost:5135
 
-### Перевірка API
+### Ping
 GET {{host}}/api/ping
 Accept: application/json
 
-### Реєстрація користувача
+
+### Register
 POST {{host}}/api/auth/register
 Content-Type: application/json
+Accept: application/json
 
 {
   "email": "sergiy@example.com",
   "displayName": "Sergiy",
+  "password": "StrongPassword123"
+}
+
+
+### Login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "sergiy@example.com",
   "password": "StrongPassword123"
 }

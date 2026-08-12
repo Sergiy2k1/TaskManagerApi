@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Security;
 using TaskManager.Application.Abstractions.Time;
+using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
 using TaskManager.Infrastructure.Persistence;
 using TaskManager.Infrastructure.Persistence.Repositories;
@@ -29,23 +30,55 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString);
 });
 
+// Налаштування JWT.
+// Частина значень береться з appsettings.json,
+// SigningKey — з User Secrets.
+builder.Services
+    .AddOptions<JwtOptions>()
+    .Bind(
+        builder.Configuration.GetSection(
+            JwtOptions.SectionName))
+    .Validate(
+        options =>
+            !string.IsNullOrWhiteSpace(options.Issuer),
+        "Jwt:Issuer is required.")
+    .Validate(
+        options =>
+            !string.IsNullOrWhiteSpace(options.Audience),
+        "Jwt:Audience is required.")
+    .Validate(
+        options =>
+            !string.IsNullOrWhiteSpace(options.SigningKey),
+        "Jwt:SigningKey is required.")
+    .Validate(
+        options =>
+            options.AccessTokenLifetimeMinutes
+                is >= 1 and <= 60,
+        "Jwt:AccessTokenLifetimeMinutes must be between 1 and 60.")
+    .ValidateOnStart();
+
 // Repository для роботи з користувачами.
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // AppDbContext реалізує IUnitOfWork.
-// Repository та UnitOfWork працюють з одним scoped DbContext.
+// Repository та UnitOfWork використовують один scoped AppDbContext.
 builder.Services.AddScoped<IUnitOfWork>(serviceProvider =>
     serviceProvider.GetRequiredService<AppDbContext>());
 
-// Сервіс хешування та перевірки паролів.
+// Хешування та перевірка паролів.
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 
-// SystemClock не зберігає mutable state,
-// тому одного instance достатньо на весь application lifetime.
+// Генератор JWT access token.
+builder.Services.AddSingleton<
+    IAccessTokenGenerator,
+    JwtAccessTokenGenerator>();
+
+// Системний UTC clock.
 builder.Services.AddSingleton<IClock, SystemClock>();
 
-// Application use case для реєстрації користувача.
+// Application use cases.
 builder.Services.AddScoped<RegisterUserHandler>();
+builder.Services.AddScoped<LoginUserHandler>();
 
 var app = builder.Build();
 
@@ -59,7 +92,7 @@ if (app.Environment.IsDevelopment())
 // якщо HTTPS endpoint доступний.
 app.UseHttpsRedirection();
 
-// Підключаємо маршрути всіх controller-ів.
+// Підключаємо маршрути controller-ів.
 app.MapControllers();
 
 // Запускаємо ASP.NET Core application.

@@ -22,6 +22,17 @@ public sealed class UserRepository : IUserRepository
             cancellationToken);
     }
 
+    public Task<User?> GetByNormalizedEmailAsync(
+        string normalizedEmail,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Users
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                user => user.NormalizedEmail == normalizedEmail,
+                cancellationToken);
+    }
+
     public void Add(User user)
     {
         ArgumentNullException.ThrowIfNull(user);
