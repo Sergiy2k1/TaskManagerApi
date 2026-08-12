@@ -61,9 +61,7 @@ public sealed class RegisterUserHandler
             passwordHash: passwordHash,
             createdAtUtc: now);
 
-        await _userRepository.AddAsync(
-            user,
-            cancellationToken);
+        _userRepository.Add(user);
 
         await _unitOfWork.SaveChangesAsync(
             cancellationToken);

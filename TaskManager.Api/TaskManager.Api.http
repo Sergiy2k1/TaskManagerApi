@@ -1,5 +1,15 @@
 @host = http://localhost:5135
 
-### Перевірка, що API працює
+### Перевірка API
 GET {{host}}/api/ping
 Accept: application/json
+
+### Реєстрація користувача
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "sergiy@example.com",
+  "displayName": "Sergiy",
+  "password": "StrongPassword123"
+}
