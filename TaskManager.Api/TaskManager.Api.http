@@ -26,3 +26,13 @@ Accept: application/json
   "email": "sergiy@example.com",
   "password": "StrongPassword123"
 }
+
+
+### Profile without token
+GET {{host}}/api/profile
+Accept: application/json
+
+### Profile with token
+GET {{host}}/api/profile
+Accept: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN

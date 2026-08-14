@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Security;
 using TaskManager.Application.Abstractions.Time;
@@ -17,27 +19,36 @@ builder.Services.AddControllers();
 // OpenAPI.
 builder.Services.AddOpenApi();
 
-// Отримуємо connection string із конфігурації.
-// Для локальної розробки він зберігається через User Secrets.
+// -------------------------------------------------------
+// Database
+// -------------------------------------------------------
+
 var connectionString =
     builder.Configuration.GetConnectionString("Database")
     ?? throw new InvalidOperationException(
         "Connection string 'Database' was not found.");
 
-// Реєструємо EF Core DbContext та PostgreSQL provider.
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseNpgsql(connectionString);
 });
 
-// Налаштування JWT.
-// Частина значень береться з appsettings.json,
-// SigningKey — з User Secrets.
+// -------------------------------------------------------
+// JWT configuration
+// -------------------------------------------------------
+
+var jwtSection =
+    builder.Configuration.GetSection(
+        JwtOptions.SectionName);
+
+var jwtOptions =
+    jwtSection.Get<JwtOptions>()
+    ?? throw new InvalidOperationException(
+        "JWT configuration was not found.");
+
 builder.Services
     .AddOptions<JwtOptions>()
-    .Bind(
-        builder.Configuration.GetSection(
-            JwtOptions.SectionName))
+    .Bind(jwtSection)
     .Validate(
         options =>
             !string.IsNullOrWhiteSpace(options.Issuer),
@@ -57,43 +68,132 @@ builder.Services
         "Jwt:AccessTokenLifetimeMinutes must be between 1 and 60.")
     .ValidateOnStart();
 
-// Repository для роботи з користувачами.
-builder.Services.AddScoped<IUserRepository, UserRepository>();
+// SigningKey у нас зберігається як Base64,
+// тому для JWT validation перетворюємо його назад у bytes.
+byte[] jwtSigningKeyBytes;
 
-// AppDbContext реалізує IUnitOfWork.
-// Repository та UnitOfWork використовують один scoped AppDbContext.
-builder.Services.AddScoped<IUnitOfWork>(serviceProvider =>
-    serviceProvider.GetRequiredService<AppDbContext>());
+try
+{
+    jwtSigningKeyBytes =
+        Convert.FromBase64String(
+            jwtOptions.SigningKey);
+}
+catch (FormatException exception)
+{
+    throw new InvalidOperationException(
+        "Jwt:SigningKey must be a valid Base64 string.",
+        exception);
+}
 
-// Хешування та перевірка паролів.
-builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+if (jwtSigningKeyBytes.Length < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:SigningKey must contain at least 32 bytes.");
+}
 
-// Генератор JWT access token.
+var jwtSecurityKey =
+    new SymmetricSecurityKey(
+        jwtSigningKeyBytes);
+
+// -------------------------------------------------------
+// Authentication
+// -------------------------------------------------------
+
+builder.Services
+    .AddAuthentication(
+        JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // Не перетворюємо JWT claim names
+        // у Microsoft-specific claim names.
+        // "sub" залишиться "sub",
+        // "email" залишиться "email".
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters =
+            new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = jwtOptions.Issuer,
+
+                ValidateAudience = true,
+                ValidAudience = jwtOptions.Audience,
+
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = jwtSecurityKey,
+
+                ValidateLifetime = true,
+
+                // Невеликий tolerance для різниці часу
+                // між системами.
+                ClockSkew = TimeSpan.FromSeconds(30)
+            };
+    });
+
+// [Authorize] використовує authorization services.
+builder.Services.AddAuthorization();
+
+// -------------------------------------------------------
+// Persistence
+// -------------------------------------------------------
+
+builder.Services.AddScoped<
+    IUserRepository,
+    UserRepository>();
+
+builder.Services.AddScoped<IUnitOfWork>(
+    serviceProvider =>
+        serviceProvider
+            .GetRequiredService<AppDbContext>());
+
+// -------------------------------------------------------
+// Security services
+// -------------------------------------------------------
+
+builder.Services.AddScoped<
+    IPasswordHasher,
+    PasswordHasher>();
+
 builder.Services.AddSingleton<
     IAccessTokenGenerator,
     JwtAccessTokenGenerator>();
 
-// Системний UTC clock.
-builder.Services.AddSingleton<IClock, SystemClock>();
+// -------------------------------------------------------
+// Time
+// -------------------------------------------------------
 
-// Application use cases.
-builder.Services.AddScoped<RegisterUserHandler>();
-builder.Services.AddScoped<LoginUserHandler>();
+builder.Services.AddSingleton<
+    IClock,
+    SystemClock>();
+
+// -------------------------------------------------------
+// Application use cases
+// -------------------------------------------------------
+
+builder.Services.AddScoped<
+    RegisterUserHandler>();
+
+builder.Services.AddScoped<
+    LoginUserHandler>();
+
+// -------------------------------------------------------
+// HTTP pipeline
+// -------------------------------------------------------
 
 var app = builder.Build();
 
-// OpenAPI вмикаємо тільки в Development.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-// HTTP-запити перенаправляємо на HTTPS,
-// якщо HTTPS endpoint доступний.
-app.UseHttpsRedirection();
+// Спочатку визначаємо, хто користувач.
+app.UseAuthentication();
 
-// Підключаємо маршрути controller-ів.
+// Потім перевіряємо, чи має він право
+// виконувати конкретну операцію.
+app.UseAuthorization();
+
 app.MapControllers();
 
-// Запускаємо ASP.NET Core application.
 app.Run();
