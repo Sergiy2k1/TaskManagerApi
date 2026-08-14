@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using TaskManager.Api.ErrorHandling;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Security;
 using TaskManager.Application.Abstractions.Time;
@@ -13,11 +14,21 @@ using TaskManager.Infrastructure.Time;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controller-based API.
+// -------------------------------------------------------
+// API
+// -------------------------------------------------------
+
 builder.Services.AddControllers();
 
-// OpenAPI.
+// OpenAPI documentation.
 builder.Services.AddOpenApi();
+
+// Стандартний формат помилок HTTP API.
+builder.Services.AddProblemDetails();
+
+// Глобальна обробка Application, Domain
+// та unexpected exceptions.
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // -------------------------------------------------------
 // Database
@@ -68,8 +79,8 @@ builder.Services
         "Jwt:AccessTokenLifetimeMinutes must be between 1 and 60.")
     .ValidateOnStart();
 
-// SigningKey у нас зберігається як Base64,
-// тому для JWT validation перетворюємо його назад у bytes.
+// SigningKey зберігається у User Secrets як Base64.
+// Для JWT validation перетворюємо його назад у bytes.
 byte[] jwtSigningKeyBytes;
 
 try
@@ -104,10 +115,8 @@ builder.Services
         JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        // Не перетворюємо JWT claim names
-        // у Microsoft-specific claim names.
-        // "sub" залишиться "sub",
-        // "email" залишиться "email".
+        // Залишаємо стандартні JWT claim names:
+        // sub, email, jti тощо.
         options.MapInboundClaims = false;
 
         options.TokenValidationParameters =
@@ -124,13 +133,12 @@ builder.Services
 
                 ValidateLifetime = true,
 
-                // Невеликий tolerance для різниці часу
-                // між системами.
+                // Допустима невелика різниця системного часу.
                 ClockSkew = TimeSpan.FromSeconds(30)
             };
     });
 
-// [Authorize] використовує authorization services.
+// Потрібно для [Authorize].
 builder.Services.AddAuthorization();
 
 // -------------------------------------------------------
@@ -141,13 +149,16 @@ builder.Services.AddScoped<
     IUserRepository,
     UserRepository>();
 
+// AppDbContext реалізує IUnitOfWork.
+// У межах одного HTTP request repository та unit of work
+// отримують той самий scoped AppDbContext.
 builder.Services.AddScoped<IUnitOfWork>(
     serviceProvider =>
         serviceProvider
             .GetRequiredService<AppDbContext>());
 
 // -------------------------------------------------------
-// Security services
+// Security
 // -------------------------------------------------------
 
 builder.Services.AddScoped<
@@ -187,13 +198,18 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// Спочатку визначаємо, хто користувач.
+// Перехоплює необроблені exceptions нижче по pipeline.
+app.UseExceptionHandler();
+
+// Спочатку ASP.NET Core визначає,
+// хто виконує request.
 app.UseAuthentication();
 
-// Потім перевіряємо, чи має він право
-// виконувати конкретну операцію.
+// Потім перевіряє authorization rules,
+// зокрема [Authorize].
 app.UseAuthorization();
 
+// Підключає controller endpoints.
 app.MapControllers();
 
 app.Run();
