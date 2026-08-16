@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.JsonWebTokens;
+using TaskManager.Application.Abstractions.Authentication;
 
 namespace TaskManager.Api.Controllers;
 
@@ -9,26 +9,22 @@ namespace TaskManager.Api.Controllers;
 [Authorize]
 public sealed class ProfileController : ControllerBase
 {
+    private readonly ICurrentUser _currentUser;
+
+    public ProfileController(
+        ICurrentUser currentUser)
+    {
+        _currentUser = currentUser;
+    }
+
     [HttpGet]
     public IActionResult Get()
     {
-        var userId =
-            User.FindFirst(
-                JwtRegisteredClaimNames.Sub)?.Value;
-
-        var email =
-            User.FindFirst(
-                JwtRegisteredClaimNames.Email)?.Value;
-
-        var displayName =
-            User.FindFirst(
-                "display_name")?.Value;
-
         return Ok(new
         {
-            UserId = userId,
-            Email = email,
-            DisplayName = displayName
+            _currentUser.UserId,
+            _currentUser.Email,
+            _currentUser.DisplayName
         });
     }
 }

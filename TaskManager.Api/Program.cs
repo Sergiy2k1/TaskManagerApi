@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using TaskManager.Api.Authentication;
 using TaskManager.Api.ErrorHandling;
+using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Security;
 using TaskManager.Application.Abstractions.Time;
@@ -140,6 +142,16 @@ builder.Services
 
 // Потрібно для [Authorize].
 builder.Services.AddAuthorization();
+
+// Дозволяє отримувати поточний HttpContext
+// поза controller-ом.
+builder.Services.AddHttpContextAccessor();
+
+// Представлення поточного authenticated user
+// для Application layer.
+builder.Services.AddScoped<
+    ICurrentUser,
+    HttpCurrentUser>();
 
 // -------------------------------------------------------
 // Persistence
