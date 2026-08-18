@@ -7,6 +7,7 @@ using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Security;
 using TaskManager.Application.Abstractions.Time;
+using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
 using TaskManager.Infrastructure.Persistence;
@@ -22,14 +23,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-// OpenAPI documentation.
 builder.Services.AddOpenApi();
 
-// Стандартний формат помилок HTTP API.
+// Стандартний формат HTTP API errors.
 builder.Services.AddProblemDetails();
 
-// Глобальна обробка Application, Domain
-// та unexpected exceptions.
+// Глобальна обробка Application,
+// Domain та unexpected exceptions.
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // -------------------------------------------------------
@@ -81,8 +81,11 @@ builder.Services
         "Jwt:AccessTokenLifetimeMinutes must be between 1 and 60.")
     .ValidateOnStart();
 
-// SigningKey зберігається у User Secrets як Base64.
-// Для JWT validation перетворюємо його назад у bytes.
+// SigningKey зберігається в User Secrets
+// у форматі Base64.
+//
+// Для перевірки JWT перетворюємо його
+// назад у масив bytes.
 byte[] jwtSigningKeyBytes;
 
 try
@@ -117,8 +120,11 @@ builder.Services
         JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        // Залишаємо стандартні JWT claim names:
-        // sub, email, jti тощо.
+        // Не перетворюємо стандартні JWT claim names
+        // у Microsoft-specific claim names.
+        //
+        // sub залишиться sub,
+        // email залишиться email.
         options.MapInboundClaims = false;
 
         options.TokenValidationParameters =
@@ -135,7 +141,8 @@ builder.Services
 
                 ValidateLifetime = true,
 
-                // Допустима невелика різниця системного часу.
+                // Допускаємо невелику різницю
+                // системного часу.
                 ClockSkew = TimeSpan.FromSeconds(30)
             };
     });
@@ -143,11 +150,15 @@ builder.Services
 // Потрібно для [Authorize].
 builder.Services.AddAuthorization();
 
-// Дозволяє отримувати поточний HttpContext
-// поза controller-ом.
+// -------------------------------------------------------
+// Current User
+// -------------------------------------------------------
+
+// Дозволяє HttpCurrentUser отримати
+// поточний HttpContext.
 builder.Services.AddHttpContextAccessor();
 
-// Представлення поточного authenticated user
+// Представлення authenticated користувача
 // для Application layer.
 builder.Services.AddScoped<
     ICurrentUser,
@@ -157,13 +168,21 @@ builder.Services.AddScoped<
 // Persistence
 // -------------------------------------------------------
 
+// User persistence.
 builder.Services.AddScoped<
     IUserRepository,
     UserRepository>();
 
+// Project persistence.
+builder.Services.AddScoped<
+    IProjectRepository,
+    ProjectRepository>();
+
 // AppDbContext реалізує IUnitOfWork.
-// У межах одного HTTP request repository та unit of work
-// отримують той самий scoped AppDbContext.
+//
+// Repository та UnitOfWork в межах одного
+// HTTP request використовують один і той самий
+// scoped AppDbContext.
 builder.Services.AddScoped<IUnitOfWork>(
     serviceProvider =>
         serviceProvider
@@ -173,10 +192,12 @@ builder.Services.AddScoped<IUnitOfWork>(
 // Security
 // -------------------------------------------------------
 
+// Хешування та перевірка password.
 builder.Services.AddScoped<
     IPasswordHasher,
     PasswordHasher>();
 
+// Генерація JWT access token.
 builder.Services.AddSingleton<
     IAccessTokenGenerator,
     JwtAccessTokenGenerator>();
@@ -193,11 +214,16 @@ builder.Services.AddSingleton<
 // Application use cases
 // -------------------------------------------------------
 
+// Users.
 builder.Services.AddScoped<
     RegisterUserHandler>();
 
 builder.Services.AddScoped<
     LoginUserHandler>();
+
+// Projects.
+builder.Services.AddScoped<
+    CreateProjectHandler>();
 
 // -------------------------------------------------------
 // HTTP pipeline
@@ -210,18 +236,19 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// Перехоплює необроблені exceptions нижче по pipeline.
+// Перехоплює необроблені exceptions
+// із controller/Application/Domain.
 app.UseExceptionHandler();
 
-// Спочатку ASP.NET Core визначає,
-// хто виконує request.
+// Спочатку визначаємо authenticated user.
 app.UseAuthentication();
 
-// Потім перевіряє authorization rules,
-// зокрема [Authorize].
+// Потім перевіряємо authorization rules,
+// наприклад [Authorize].
 app.UseAuthorization();
 
-// Підключає controller endpoints.
+// Підключаємо controller endpoints.
 app.MapControllers();
 
+// Запускаємо ASP.NET Core application.
 app.Run();

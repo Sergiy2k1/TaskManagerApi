@@ -34,10 +34,15 @@ public sealed class Project
         string? description,
         DateTimeOffset createdAtUtc)
     {
-        ValidateOwnerId(ownerId);
+        ValidateIdentifier(
+            ownerId,
+            nameof(ownerId),
+            "Project owner identifier cannot be empty.");
 
         var preparedName = PrepareName(name);
-        var preparedDescription = PrepareDescription(description);
+
+        var preparedDescription =
+            PrepareDescription(description);
 
         EnsureUtc(
             createdAtUtc,
@@ -103,32 +108,34 @@ public sealed class Project
         UpdatedAtUtc = changedAtUtc;
     }
 
-    public void Archive(DateTimeOffset archivedAtUtc)
+    public void Archive(
+        DateTimeOffset archivedAtUtc)
     {
-        EnsureValidChangeTime(
-            archivedAtUtc,
-            nameof(archivedAtUtc));
-
         if (IsArchived)
         {
             return;
         }
+
+        EnsureValidChangeTime(
+            archivedAtUtc,
+            nameof(archivedAtUtc));
 
         IsArchived = true;
         ArchivedAtUtc = archivedAtUtc;
         UpdatedAtUtc = archivedAtUtc;
     }
 
-    public void Restore(DateTimeOffset restoredAtUtc)
+    public void Restore(
+        DateTimeOffset restoredAtUtc)
     {
-        EnsureValidChangeTime(
-            restoredAtUtc,
-            nameof(restoredAtUtc));
-
         if (!IsArchived)
         {
             return;
         }
+
+        EnsureValidChangeTime(
+            restoredAtUtc,
+            nameof(restoredAtUtc));
 
         IsArchived = false;
         ArchivedAtUtc = null;
@@ -144,17 +151,8 @@ public sealed class Project
         }
     }
 
-    private static void ValidateOwnerId(Guid ownerId)
-    {
-        if (ownerId == Guid.Empty)
-        {
-            throw new DomainValidationException(
-                "Project owner identifier cannot be empty.",
-                nameof(ownerId));
-        }
-    }
-
-    private static string PrepareName(string name)
+    private static string PrepareName(
+        string name)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -168,14 +166,16 @@ public sealed class Project
         if (preparedName.Length < MinNameLength)
         {
             throw new DomainValidationException(
-                $"Project name must contain at least {MinNameLength} characters.",
+                $"Project name must contain at least " +
+                $"{MinNameLength} characters.",
                 nameof(name));
         }
 
         if (preparedName.Length > MaxNameLength)
         {
             throw new DomainValidationException(
-                $"Project name cannot exceed {MaxNameLength} characters.",
+                $"Project name cannot exceed " +
+                $"{MaxNameLength} characters.",
                 nameof(name));
         }
 
@@ -190,16 +190,32 @@ public sealed class Project
             return null;
         }
 
-        var preparedDescription = description.Trim();
+        var preparedDescription =
+            description.Trim();
 
-        if (preparedDescription.Length > MaxDescriptionLength)
+        if (preparedDescription.Length >
+            MaxDescriptionLength)
         {
             throw new DomainValidationException(
-                $"Project description cannot exceed {MaxDescriptionLength} characters.",
+                $"Project description cannot exceed " +
+                $"{MaxDescriptionLength} characters.",
                 nameof(description));
         }
 
         return preparedDescription;
+    }
+
+    private static void ValidateIdentifier(
+        Guid identifier,
+        string parameterName,
+        string errorMessage)
+    {
+        if (identifier == Guid.Empty)
+        {
+            throw new DomainValidationException(
+                errorMessage,
+                parameterName);
+        }
     }
 
     private void EnsureValidChangeTime(
@@ -213,7 +229,8 @@ public sealed class Project
         if (changedAtUtc < CreatedAtUtc)
         {
             throw new DomainValidationException(
-                "Change time cannot be earlier than project creation time.",
+                "Change time cannot be earlier than " +
+                "the project creation time.",
                 parameterName);
         }
 
@@ -221,7 +238,8 @@ public sealed class Project
             changedAtUtc < UpdatedAtUtc.Value)
         {
             throw new DomainValidationException(
-                "Change time cannot be earlier than the previous change time.",
+                "Change time cannot be earlier than " +
+                "the previous change time.",
                 parameterName);
         }
     }

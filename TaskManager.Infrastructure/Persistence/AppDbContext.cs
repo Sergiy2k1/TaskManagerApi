@@ -14,6 +14,8 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
 
     public DbSet<User> Users => Set<User>();
 
+    public DbSet<Project> Projects => Set<Project>();
+
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
