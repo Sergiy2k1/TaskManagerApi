@@ -91,6 +91,13 @@ public sealed class GlobalExceptionHandler
                     exception.Message
                 ),
 
+            ApplicationNotFoundException =>
+                (
+                    StatusCodes.Status404NotFound,
+                    "Not Found",
+                    exception.Message
+                ),
+
             ApplicationConflictException =>
                 (
                     StatusCodes.Status409Conflict,

@@ -1,4 +1,6 @@
 @host = http://localhost:5135
+@accessToken = YOUR_ACCESS_TOKEN
+
 
 ### Ping
 GET {{host}}/api/ping
@@ -11,8 +13,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "email": "snot-an-email",
-  "displayName": "Sergiy",
+  "email": "new.user@example.com",
+  "displayName": "New User",
   "password": "StrongPassword123"
 }
 
@@ -32,7 +34,19 @@ Accept: application/json
 GET {{host}}/api/profile
 Accept: application/json
 
+
 ### Profile with token
 GET {{host}}/api/profile
 Accept: application/json
-Authorization: Bearer YOUR_ACCESS_TOKEN
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJUYXNrTWFuYWdlci5DbGllbnQiLCJpc3MiOiJUYXNrTWFuYWdlci5BcGkiLCJleHAiOjE3ODc2ODgxMDksImlhdCI6MTc4NzY4NzIwOSwibmJmIjoxNzg3Njg3MjA5LCJzdWIiOiI4YzZhNGViYS1hNzkxLTRmMDAtOGQzNy0zMjQ0YWUxMzE0ZmEiLCJlbWFpbCI6InNlcmdpeUBleGFtcGxlLmNvbSIsImRpc3BsYXlfbmFtZSI6IlNlcmdpeSIsImp0aSI6ImY5YzJkMGI2YTJlODQyNjFhNGFmNmI2YzY4OWMyM2EzIn0.nUj54pFq58UN9e5qOayPFuiwedUDAAZjcvftT27u7j4
+
+### Create project
+POST {{host}}/api/projects
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJUYXNrTWFuYWdlci5DbGllbnQiLCJpc3MiOiJUYXNrTWFuYWdlci5BcGkiLCJleHAiOjE3ODcwNzc4NjUsImlhdCI6MTc4NzA3Njk2NSwibmJmIjoxNzg3MDc2OTY1LCJzdWIiOiI4YzZhNGViYS1hNzkxLTRmMDAtOGQzNy0zMjQ0YWUxMzE0ZmEiLCJlbWFpbCI6InNlcmdpeUBleGFtcGxlLmNvbSIsImRpc3BsYXlfbmFtZSI6IlNlcmdpeSIsImp0aSI6IjgwZTQ0MWE5YzJhODRkZmM5ZDRhOGExY2UyMWIwMzAyIn0.tp9PcoCVzUd5Ip3xr8I5uhOYZO0G2_FETBfAwNJUU2A
+
+{
+  "name": "Task Manager Development",
+  "description": "Backend development project for the Task Manager API."
+}

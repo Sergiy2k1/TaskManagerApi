@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts.Projects;
 using TaskManager.Application.Projects.Create;
+using TaskManager.Application.Projects.GetById;
 
 namespace TaskManager.Api.Controllers;
 
@@ -11,11 +12,14 @@ namespace TaskManager.Api.Controllers;
 public sealed class ProjectsController : ControllerBase
 {
     private readonly CreateProjectHandler _createProjectHandler;
+    private readonly GetProjectByIdHandler _getProjectByIdHandler;
 
     public ProjectsController(
-        CreateProjectHandler createProjectHandler)
+        CreateProjectHandler createProjectHandler,
+        GetProjectByIdHandler getProjectByIdHandler)
     {
         _createProjectHandler = createProjectHandler;
+        _getProjectByIdHandler = getProjectByIdHandler;
     }
 
     [HttpPost]
@@ -46,5 +50,36 @@ public sealed class ProjectsController : ControllerBase
         return StatusCode(
             StatusCodes.Status201Created,
             response);
+    }
+
+    [HttpGet("{projectId:guid}")]
+    [ProducesResponseType(
+        typeof(GetProjectByIdResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GetProjectByIdResponse>> GetById(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetProjectByIdQuery(
+            ProjectId: projectId);
+
+        var result =
+            await _getProjectByIdHandler.HandleAsync(
+                query,
+                cancellationToken);
+
+        var response = new GetProjectByIdResponse(
+            ProjectId: result.ProjectId,
+            OwnerId: result.OwnerId,
+            Name: result.Name,
+            Description: result.Description,
+            IsArchived: result.IsArchived,
+            CreatedAtUtc: result.CreatedAtUtc,
+            UpdatedAtUtc: result.UpdatedAtUtc,
+            ArchivedAtUtc: result.ArchivedAtUtc);
+
+        return Ok(response);
     }
 }

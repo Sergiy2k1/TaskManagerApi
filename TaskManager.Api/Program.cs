@@ -8,6 +8,7 @@ using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Security;
 using TaskManager.Application.Abstractions.Time;
 using TaskManager.Application.Projects.Create;
+using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
 using TaskManager.Infrastructure.Persistence;
@@ -224,6 +225,9 @@ builder.Services.AddScoped<
 // Projects.
 builder.Services.AddScoped<
     CreateProjectHandler>();
+
+builder.Services.AddScoped<
+    GetProjectByIdHandler>();
 
 // -------------------------------------------------------
 // HTTP pipeline
