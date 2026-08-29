@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts.Auth;
+using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
 
@@ -9,12 +10,21 @@ namespace TaskManager.Api.Controllers;
 [Route("api/auth")]
 public sealed class AuthController : ControllerBase
 {
-    private readonly RegisterUserHandler _registerUserHandler;
-    private readonly LoginUserHandler _loginUserHandler;
+    private readonly ICommandHandler<
+        RegisterUserCommand,
+        RegisterUserResult> _registerUserHandler;
+
+    private readonly ICommandHandler<
+        LoginUserCommand,
+        LoginUserResult> _loginUserHandler;
 
     public AuthController(
-        RegisterUserHandler registerUserHandler,
-        LoginUserHandler loginUserHandler)
+        ICommandHandler<
+            RegisterUserCommand,
+            RegisterUserResult> registerUserHandler,
+        ICommandHandler<
+            LoginUserCommand,
+            LoginUserResult> loginUserHandler)
     {
         _registerUserHandler = registerUserHandler;
         _loginUserHandler = loginUserHandler;
