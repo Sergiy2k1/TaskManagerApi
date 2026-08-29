@@ -1,0 +1,77 @@
+[1mdiff --git a/TaskManager.Api/Controllers/ProjectsController.cs b/TaskManager.Api/Controllers/ProjectsController.cs[m
+[1mindex 65970af..30412e5 100644[m
+[1m--- a/TaskManager.Api/Controllers/ProjectsController.cs[m
+[1m+++ b/TaskManager.Api/Controllers/ProjectsController.cs[m
+[36m@@ -1,6 +1,7 @@[m
+ ﻿using Microsoft.AspNetCore.Authorization;[m
+ using Microsoft.AspNetCore.Mvc;[m
+ using TaskManager.Api.Contracts.Projects;[m
+[32m+[m[32musing TaskManager.Application.Abstractions.Messaging;[m
+ using TaskManager.Application.Projects.Create;[m
+ using TaskManager.Application.Projects.GetById;[m
+ [m
+[36m@@ -11,12 +12,21 @@[m [mnamespace TaskManager.Api.Controllers;[m
+ [Authorize][m
+ public sealed class ProjectsController : ControllerBase[m
+ {[m
+[31m-    private readonly CreateProjectHandler _createProjectHandler;[m
+[31m-    private readonly GetProjectByIdHandler _getProjectByIdHandler;[m
+[32m+[m[32m    private readonly ICommandHandler<[m
+[32m+[m[32m        CreateProjectCommand,[m
+[32m+[m[32m        CreateProjectResult> _createProjectHandler;[m
+[32m+[m
+[32m+[m[32m    private readonly IQueryHandler<[m
+[32m+[m[32m        GetProjectByIdQuery,[m
+[32m+[m[32m        GetProjectByIdResult> _getProjectByIdHandler;[m
+ [m
+     public ProjectsController([m
+[31m-        CreateProjectHandler createProjectHandler,[m
+[31m-        GetProjectByIdHandler getProjectByIdHandler)[m
+[32m+[m[32m        ICommandHandler<[m
+[32m+[m[32m            CreateProjectCommand,[m
+[32m+[m[32m            CreateProjectResult> createProjectHandler,[m
+[32m+[m[32m        IQueryHandler<[m
+[32m+[m[32m            GetProjectByIdQuery,[m
+[32m+[m[32m            GetProjectByIdResult> getProjectByIdHandler)[m
+     {[m
+         _createProjectHandler = createProjectHandler;[m
+         _getProjectByIdHandler = getProjectByIdHandler;[m
+[1mdiff --git a/TaskManager.Application/DependencyInjection.cs b/TaskManager.Application/DependencyInjection.cs[m
+[1mindex 93d4559..27b5712 100644[m
+[1m--- a/TaskManager.Application/DependencyInjection.cs[m
+[1m+++ b/TaskManager.Application/DependencyInjection.cs[m
+[36m@@ -1,4 +1,5 @@[m
+ using Microsoft.Extensions.DependencyInjection;[m
+[32m+[m[32musing TaskManager.Application.Abstractions.Messaging;[m
+ using TaskManager.Application.Projects.Create;[m
+ using TaskManager.Application.Projects.GetById;[m
+ using TaskManager.Application.Users.Login;[m
+[36m@@ -16,6 +17,26 @@[m [mpublic static class DependencyInjection[m
+         services.AddScoped<CreateProjectHandler>();[m
+         services.AddScoped<GetProjectByIdHandler>();[m
+ [m
+[32m+[m[32m        services.AddScoped<[m
+[32m+[m[32m            ICommandHandler<RegisterUserCommand, RegisterUserResult>>([m
+[32m+[m[32m            serviceProvider =>[m
+[32m+[m[32m                serviceProvider.GetRequiredService<RegisterUserHandler>());[m
+[32m+[m
+[32m+[m[32m        services.AddScoped<[m
+[32m+[m[32m            ICommandHandler<LoginUserCommand, LoginUserResult>>([m
+[32m+[m[32m            serviceProvider =>[m
+[32m+[m[32m                serviceProvider.GetRequiredService<LoginUserHandler>());[m
+[32m+[m
+[32m+[m[32m        services.AddScoped<[m
+[32m+[m[32m            ICommandHandler<CreateProjectCommand, CreateProjectResult>>([m
+[32m+[m[32m            serviceProvider =>[m
+[32m+[m[32m                serviceProvider.GetRequiredService<CreateProjectHandler>());[m
+[32m+[m
+[32m+[m[32m        services.AddScoped<[m
+[32m+[m[32m            IQueryHandler<GetProjectByIdQuery, GetProjectByIdResult>>([m
+[32m+[m[32m            serviceProvider =>[m
+[32m+[m[32m                serviceProvider.GetRequiredService<GetProjectByIdHandler>());[m
+[32m+[m
+         return services;[m
+     }[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m

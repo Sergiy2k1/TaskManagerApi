@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts.Projects;
+using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Projects.GetById;
 
@@ -11,12 +12,21 @@ namespace TaskManager.Api.Controllers;
 [Authorize]
 public sealed class ProjectsController : ControllerBase
 {
-    private readonly CreateProjectHandler _createProjectHandler;
-    private readonly GetProjectByIdHandler _getProjectByIdHandler;
+    private readonly ICommandHandler<
+        CreateProjectCommand,
+        CreateProjectResult> _createProjectHandler;
+
+    private readonly IQueryHandler<
+        GetProjectByIdQuery,
+        GetProjectByIdResult> _getProjectByIdHandler;
 
     public ProjectsController(
-        CreateProjectHandler createProjectHandler,
-        GetProjectByIdHandler getProjectByIdHandler)
+        ICommandHandler<
+            CreateProjectCommand,
+            CreateProjectResult> createProjectHandler,
+        IQueryHandler<
+            GetProjectByIdQuery,
+            GetProjectByIdResult> getProjectByIdHandler)
     {
         _createProjectHandler = createProjectHandler;
         _getProjectByIdHandler = getProjectByIdHandler;
