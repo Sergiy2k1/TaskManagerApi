@@ -2,6 +2,7 @@ using NSubstitute;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Security;
 using TaskManager.Application.Abstractions.Time;
+using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Users.Register;
 using TaskManager.Domain.Entities;
 using Xunit;
@@ -101,5 +102,70 @@ public sealed class RegisterUserHandlerTests
         await unitOfWork
             .Received(1)
             .SaveChangesAsync(cancellationToken);
+    }
+
+    [Fact]
+    public async Task HandleAsyncWhenEmailAlreadyExistsThrowsConflictException()
+    {
+        var userRepository =
+            Substitute.For<IUserRepository>();
+
+        var unitOfWork =
+            Substitute.For<IUnitOfWork>();
+
+        var passwordHasher =
+            Substitute.For<IPasswordHasher>();
+
+        var clock =
+            Substitute.For<IClock>();
+
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        userRepository
+            .ExistsByNormalizedEmailAsync(
+                "SERGIY@EXAMPLE.COM",
+                cancellationToken)
+            .Returns(true);
+
+        var handler = new RegisterUserHandler(
+            userRepository,
+            unitOfWork,
+            passwordHasher,
+            clock);
+
+        var command = new RegisterUserCommand(
+            Email: "sergiy@example.com",
+            DisplayName: "Sergiy",
+            Password: "StrongPassword123!");
+
+        var exception =
+            await Assert.ThrowsAsync<ApplicationConflictException>(
+                () => handler.HandleAsync(
+                    command,
+                    cancellationToken));
+
+        Assert.Equal(
+            "A user with this email already exists.",
+            exception.Message);
+
+        await userRepository
+            .Received(1)
+            .ExistsByNormalizedEmailAsync(
+                "SERGIY@EXAMPLE.COM",
+                cancellationToken);
+
+        passwordHasher
+            .DidNotReceive()
+            .Hash(Arg.Any<string>());
+
+        userRepository
+            .DidNotReceive()
+            .Add(Arg.Any<User>());
+
+        await unitOfWork
+            .DidNotReceive()
+            .SaveChangesAsync(
+                Arg.Any<CancellationToken>());
     }
 }
