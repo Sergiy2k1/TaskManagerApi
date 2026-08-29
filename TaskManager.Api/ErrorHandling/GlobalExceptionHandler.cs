@@ -5,7 +5,7 @@ using TaskManager.Domain.Exceptions;
 
 namespace TaskManager.Api.ErrorHandling;
 
-public sealed class GlobalExceptionHandler
+public sealed partial class GlobalExceptionHandler
     : IExceptionHandler
 {
     private readonly IProblemDetailsService _problemDetailsService;
@@ -30,9 +30,9 @@ public sealed class GlobalExceptionHandler
         if (statusCode ==
             StatusCodes.Status500InternalServerError)
         {
-            _logger.LogError(
+            LogUnhandledException(
+                _logger,
                 exception,
-                "Unhandled exception while processing {Method} {Path}. TraceId: {TraceId}",
                 httpContext.Request.Method,
                 httpContext.Request.Path,
                 httpContext.TraceIdentifier);
@@ -61,6 +61,18 @@ public sealed class GlobalExceptionHandler
 
         return true;
     }
+
+    [LoggerMessage(
+        EventId = 1,
+        Level = LogLevel.Error,
+        Message =
+            "Unhandled exception while processing {Method} {Path}. TraceId: {TraceId}")]
+    private static partial void LogUnhandledException(
+        ILogger logger,
+        Exception exception,
+        string method,
+        PathString path,
+        string traceId);
 
     private static (
         int StatusCode,

@@ -1,5 +1,6 @@
 using TaskManager.Domain.Entities;
 using TaskManager.Domain.Exceptions;
+using Xunit;
 
 namespace TaskManager.Domain.UnitTests.Entities;
 
@@ -9,7 +10,7 @@ public sealed class ProjectTests
         new(2026, 8, 29, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public void Create_WithValidData_CreatesProject()
+    public void CreateWithValidDataCreatesProject()
     {
         var ownerId = Guid.NewGuid();
 
@@ -22,7 +23,9 @@ public sealed class ProjectTests
         Assert.NotEqual(Guid.Empty, project.Id);
         Assert.Equal(ownerId, project.OwnerId);
         Assert.Equal("Senior Task Manager", project.Name);
-        Assert.Equal("Production-grade pet project", project.Description);
+        Assert.Equal(
+            "Production-grade pet project",
+            project.Description);
         Assert.False(project.IsArchived);
         Assert.Equal(CreatedAtUtc, project.CreatedAtUtc);
         Assert.Null(project.UpdatedAtUtc);
@@ -30,7 +33,7 @@ public sealed class ProjectTests
     }
 
     [Fact]
-    public void Archive_WhenProjectIsActive_ArchivesProject()
+    public void ArchiveWhenProjectIsActiveArchivesProject()
     {
         var project = CreateProject();
         var archivedAtUtc = CreatedAtUtc.AddHours(1);
@@ -38,20 +41,27 @@ public sealed class ProjectTests
         project.Archive(archivedAtUtc);
 
         Assert.True(project.IsArchived);
-        Assert.Equal(archivedAtUtc, project.ArchivedAtUtc);
-        Assert.Equal(archivedAtUtc, project.UpdatedAtUtc);
+        Assert.Equal(
+            archivedAtUtc,
+            project.ArchivedAtUtc);
+        Assert.Equal(
+            archivedAtUtc,
+            project.UpdatedAtUtc);
     }
 
     [Fact]
-    public void Rename_WhenProjectIsArchived_ThrowsDomainConflictException()
+    public void RenameWhenProjectIsArchivedThrowsDomainConflictException()
     {
         var project = CreateProject();
-        project.Archive(CreatedAtUtc.AddHours(1));
 
-        var exception = Assert.Throws<DomainConflictException>(() =>
-            project.Rename(
-                "Renamed project",
-                CreatedAtUtc.AddHours(2)));
+        project.Archive(
+            CreatedAtUtc.AddHours(1));
+
+        var exception =
+            Assert.Throws<DomainConflictException>(() =>
+                project.Rename(
+                    "Renamed project",
+                    CreatedAtUtc.AddHours(2)));
 
         Assert.Equal(
             "Archived project cannot be modified.",
