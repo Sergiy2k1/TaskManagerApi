@@ -3,10 +3,12 @@ using TaskManager.Application.Abstractions.Security;
 using TaskManager.Application.Abstractions.Time;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Domain.Entities;
+using TaskManager.Application.Abstractions.Messaging;
 
 namespace TaskManager.Application.Users.Register;
 
 public sealed class RegisterUserHandler
+    : ICommandHandler<RegisterUserCommand, RegisterUserResult>
 {
     public const int MinPasswordLength = 8;
     public const int MaxPasswordLength = 128;

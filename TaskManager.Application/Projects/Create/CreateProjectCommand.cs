@@ -1,5 +1,8 @@
-﻿namespace TaskManager.Application.Projects.Create;
+﻿using TaskManager.Application.Abstractions.Messaging;
+
+namespace TaskManager.Application.Projects.Create;
 
 public sealed record CreateProjectCommand(
     string Name,
-    string? Description);
+    string? Description)
+    : ICommand<CreateProjectResult>;

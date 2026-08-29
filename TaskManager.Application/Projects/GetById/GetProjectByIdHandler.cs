@@ -1,10 +1,11 @@
 ﻿using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Common.Exceptions;
-
+using TaskManager.Application.Abstractions.Messaging;
 namespace TaskManager.Application.Projects.GetById;
 
 public sealed class GetProjectByIdHandler
+    : IQueryHandler<GetProjectByIdQuery, GetProjectByIdResult>
 {
     private readonly IProjectRepository _projectRepository;
     private readonly ICurrentUser _currentUser;

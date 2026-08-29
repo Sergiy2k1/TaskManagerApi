@@ -1,4 +1,7 @@
-﻿namespace TaskManager.Application.Projects.GetById;
+﻿using TaskManager.Application.Abstractions.Messaging;
+
+namespace TaskManager.Application.Projects.GetById;
 
 public sealed record GetProjectByIdQuery(
-    Guid ProjectId);
+    Guid ProjectId)
+    : IQuery<GetProjectByIdResult>;

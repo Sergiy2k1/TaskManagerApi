@@ -1,4 +1,5 @@
 ﻿using TaskManager.Application.Abstractions.Authentication;
+using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Time;
 using TaskManager.Domain.Entities;
@@ -6,6 +7,7 @@ using TaskManager.Domain.Entities;
 namespace TaskManager.Application.Projects.Create;
 
 public sealed class CreateProjectHandler
+    : ICommandHandler<CreateProjectCommand, CreateProjectResult>
 {
     private readonly IProjectRepository _projectRepository;
     private readonly IUnitOfWork _unitOfWork;

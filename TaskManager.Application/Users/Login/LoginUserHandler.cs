@@ -1,4 +1,4 @@
-﻿// LoginUserHandler.cs
+﻿using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Security;
 using TaskManager.Application.Abstractions.Time;
@@ -8,6 +8,7 @@ using TaskManager.Domain.Entities;
 namespace TaskManager.Application.Users.Login;
 
 public sealed class LoginUserHandler
+    : ICommandHandler<LoginUserCommand, LoginUserResult>
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
@@ -38,11 +39,13 @@ public sealed class LoginUserHandler
                 "Invalid email or password.");
         }
 
-        var normalizedEmail = User.NormalizeEmail(command.Email);
+        var normalizedEmail =
+            User.NormalizeEmail(command.Email);
 
-        var user = await _userRepository.GetByNormalizedEmailAsync(
-            normalizedEmail,
-            cancellationToken);
+        var user =
+            await _userRepository.GetByNormalizedEmailAsync(
+                normalizedEmail,
+                cancellationToken);
 
         if (user is null || !user.IsActive)
         {
@@ -50,9 +53,10 @@ public sealed class LoginUserHandler
                 "Invalid email or password.");
         }
 
-        var passwordIsValid = _passwordHasher.Verify(
-            command.Password,
-            user.PasswordHash);
+        var passwordIsValid =
+            _passwordHasher.Verify(
+                command.Password,
+                user.PasswordHash);
 
         if (!passwordIsValid)
         {
@@ -62,15 +66,17 @@ public sealed class LoginUserHandler
 
         var now = _clock.UtcNow;
 
-        var accessToken = _accessTokenGenerator.Generate(
-            user,
-            now);
+        var accessToken =
+            _accessTokenGenerator.Generate(
+                user,
+                now);
 
         return new LoginUserResult(
             UserId: user.Id,
             Email: user.Email,
             DisplayName: user.DisplayName,
             AccessToken: accessToken.Value,
-            AccessTokenExpiresAtUtc: accessToken.ExpiresAtUtc);
+            AccessTokenExpiresAtUtc:
+                accessToken.ExpiresAtUtc);
     }
 }
