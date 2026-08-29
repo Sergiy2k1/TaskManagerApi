@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskManager.Api", "TaskMana
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskManager.Domain.UnitTests", "tests\TaskManager.Domain.UnitTests\TaskManager.Domain.UnitTests.csproj", "{5D0DD215-BD4C-4D59-B87B-F208E7055183}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskManager.Application.UnitTests", "tests\TaskManager.Application.UnitTests\TaskManager.Application.UnitTests.csproj", "{8B7B8E2D-DF1C-4E25-9A8B-3A00A6B2C5D1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{5D0DD215-BD4C-4D59-B87B-F208E7055183}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D0DD215-BD4C-4D59-B87B-F208E7055183}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D0DD215-BD4C-4D59-B87B-F208E7055183}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B7B8E2D-DF1C-4E25-9A8B-3A00A6B2C5D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B7B8E2D-DF1C-4E25-9A8B-3A00A6B2C5D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B7B8E2D-DF1C-4E25-9A8B-3A00A6B2C5D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B7B8E2D-DF1C-4E25-9A8B-3A00A6B2C5D1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
