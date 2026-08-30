@@ -135,4 +135,43 @@ public sealed class GetProjectByIdHandlerTests
                 project.Id,
                 cancellationToken);
     }
+    [Fact]
+    public async Task HandleAsyncWhenProjectIdIsEmptyThrowsValidationException()
+    {
+        var projectRepository =
+            Substitute.For<IProjectRepository>();
+
+        var currentUser =
+            Substitute.For<ICurrentUser>();
+
+        var handler = new GetProjectByIdHandler(
+            projectRepository,
+            currentUser);
+
+        var query = new GetProjectByIdQuery(
+            ProjectId: Guid.Empty);
+
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        var exception =
+            await Assert.ThrowsAsync<ApplicationValidationException>(
+                () => handler.HandleAsync(
+                    query,
+                    cancellationToken));
+
+        Assert.Equal(
+            "Project identifier cannot be empty.",
+            exception.Message);
+
+        Assert.Equal(
+            nameof(query.ProjectId),
+            exception.ParameterName);
+
+        await projectRepository
+            .DidNotReceive()
+            .GetByIdAsync(
+                Arg.Any<Guid>(),
+                Arg.Any<CancellationToken>());
+    }
 }
