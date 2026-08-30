@@ -24,6 +24,9 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
     public DbSet<TaskItem> TaskItems =>
         Set<TaskItem>();
 
+    public DbSet<TaskComment> TaskComments =>
+        Set<TaskComment>();
+
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
