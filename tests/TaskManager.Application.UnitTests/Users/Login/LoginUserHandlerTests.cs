@@ -2,6 +2,7 @@ using NSubstitute;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Security;
 using TaskManager.Application.Abstractions.Time;
+using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Users.Login;
 using TaskManager.Domain.Entities;
 using Xunit;
@@ -112,5 +113,90 @@ public sealed class LoginUserHandlerTests
             .Generate(
                 user,
                 now);
+    }
+
+    [Fact]
+    public async Task HandleAsyncWithInvalidPasswordThrowsUnauthorizedException()
+    {
+        var userRepository =
+            Substitute.For<IUserRepository>();
+
+        var passwordHasher =
+            Substitute.For<IPasswordHasher>();
+
+        var accessTokenGenerator =
+            Substitute.For<IAccessTokenGenerator>();
+
+        var clock =
+            Substitute.For<IClock>();
+
+        const string correctPasswordHash = "hashed-password";
+        const string invalidPassword = "WrongPassword123!";
+
+        var user = User.Create(
+            email: "sergiy@example.com",
+            displayName: "Sergiy",
+            passwordHash: correctPasswordHash,
+            createdAtUtc: new DateTimeOffset(
+                2026,
+                8,
+                29,
+                18,
+                0,
+                0,
+                TimeSpan.Zero));
+
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        userRepository
+            .GetByNormalizedEmailAsync(
+                "SERGIY@EXAMPLE.COM",
+                cancellationToken)
+            .Returns(user);
+
+        passwordHasher
+            .Verify(
+                invalidPassword,
+                correctPasswordHash)
+            .Returns(false);
+
+        var handler = new LoginUserHandler(
+            userRepository,
+            passwordHasher,
+            accessTokenGenerator,
+            clock);
+
+        var command = new LoginUserCommand(
+            Email: "sergiy@example.com",
+            Password: invalidPassword);
+
+        var exception =
+            await Assert.ThrowsAsync<ApplicationUnauthorizedException>(
+                () => handler.HandleAsync(
+                    command,
+                    cancellationToken));
+
+        Assert.Equal(
+            "Invalid email or password.",
+            exception.Message);
+
+        await userRepository
+            .Received(1)
+            .GetByNormalizedEmailAsync(
+                "SERGIY@EXAMPLE.COM",
+                cancellationToken);
+
+        passwordHasher
+            .Received(1)
+            .Verify(
+                invalidPassword,
+                correctPasswordHash);
+
+        accessTokenGenerator
+            .DidNotReceive()
+            .Generate(
+                Arg.Any<User>(),
+                Arg.Any<DateTimeOffset>());
     }
 }
