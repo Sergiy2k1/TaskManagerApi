@@ -12,30 +12,21 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(
         this IServiceCollection services)
     {
-        services.AddScoped<RegisterUserHandler>();
-        services.AddScoped<LoginUserHandler>();
-        services.AddScoped<CreateProjectHandler>();
-        services.AddScoped<GetProjectByIdHandler>();
+        services.AddScoped<
+            ICommandHandler<RegisterUserCommand, RegisterUserResult>,
+            RegisterUserHandler>();
 
         services.AddScoped<
-            ICommandHandler<RegisterUserCommand, RegisterUserResult>>(
-            serviceProvider =>
-                serviceProvider.GetRequiredService<RegisterUserHandler>());
+            ICommandHandler<LoginUserCommand, LoginUserResult>,
+            LoginUserHandler>();
 
         services.AddScoped<
-            ICommandHandler<LoginUserCommand, LoginUserResult>>(
-            serviceProvider =>
-                serviceProvider.GetRequiredService<LoginUserHandler>());
+            ICommandHandler<CreateProjectCommand, CreateProjectResult>,
+            CreateProjectHandler>();
 
         services.AddScoped<
-            ICommandHandler<CreateProjectCommand, CreateProjectResult>>(
-            serviceProvider =>
-                serviceProvider.GetRequiredService<CreateProjectHandler>());
-
-        services.AddScoped<
-            IQueryHandler<GetProjectByIdQuery, GetProjectByIdResult>>(
-            serviceProvider =>
-                serviceProvider.GetRequiredService<GetProjectByIdHandler>());
+            IQueryHandler<GetProjectByIdQuery, GetProjectByIdResult>,
+            GetProjectByIdHandler>();
 
         return services;
     }
