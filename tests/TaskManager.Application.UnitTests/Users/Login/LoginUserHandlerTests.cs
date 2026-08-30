@@ -262,4 +262,92 @@ public sealed class LoginUserHandlerTests
                 Arg.Any<User>(),
                 Arg.Any<DateTimeOffset>());
     }
+    [Fact]
+public async Task HandleAsyncWhenUserIsInactiveThrowsUnauthorizedException()
+{
+    var userRepository =
+        Substitute.For<IUserRepository>();
+
+    var passwordHasher =
+        Substitute.For<IPasswordHasher>();
+
+    var accessTokenGenerator =
+        Substitute.For<IAccessTokenGenerator>();
+
+    var clock =
+        Substitute.For<IClock>();
+
+    var createdAtUtc = new DateTimeOffset(
+        2026,
+        8,
+        29,
+        18,
+        0,
+        0,
+        TimeSpan.Zero);
+
+    var deactivatedAtUtc = new DateTimeOffset(
+        2026,
+        8,
+        30,
+        18,
+        0,
+        0,
+        TimeSpan.Zero);
+
+    var user = User.Create(
+        email: "sergiy@example.com",
+        displayName: "Sergiy",
+        passwordHash: "hashed-password",
+        createdAtUtc: createdAtUtc);
+
+    user.Deactivate(deactivatedAtUtc);
+
+    var cancellationToken =
+        TestContext.Current.CancellationToken;
+
+    userRepository
+        .GetByNormalizedEmailAsync(
+            "SERGIY@EXAMPLE.COM",
+            cancellationToken)
+        .Returns(user);
+
+    var handler = new LoginUserHandler(
+        userRepository,
+        passwordHasher,
+        accessTokenGenerator,
+        clock);
+
+    var command = new LoginUserCommand(
+        Email: "sergiy@example.com",
+        Password: "StrongPassword123!");
+
+    var exception =
+        await Assert.ThrowsAsync<ApplicationUnauthorizedException>(
+            () => handler.HandleAsync(
+                command,
+                cancellationToken));
+
+    Assert.Equal(
+        "Invalid email or password.",
+        exception.Message);
+
+    await userRepository
+        .Received(1)
+        .GetByNormalizedEmailAsync(
+            "SERGIY@EXAMPLE.COM",
+            cancellationToken);
+
+    passwordHasher
+        .DidNotReceive()
+        .Verify(
+            Arg.Any<string>(),
+            Arg.Any<string>());
+
+    accessTokenGenerator
+        .DidNotReceive()
+        .Generate(
+            Arg.Any<User>(),
+            Arg.Any<DateTimeOffset>());
+}
 }
