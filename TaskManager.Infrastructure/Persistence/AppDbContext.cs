@@ -12,9 +12,17 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
     {
     }
 
-    public DbSet<User> Users => Set<User>();
+    public DbSet<User> Users =>
+        Set<User>();
 
-    public DbSet<Project> Projects => Set<Project>();
+    public DbSet<Project> Projects =>
+        Set<Project>();
+
+    public DbSet<ProjectMember> ProjectMembers =>
+        Set<ProjectMember>();
+
+    public DbSet<TaskItem> TaskItems =>
+        Set<TaskItem>();
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
