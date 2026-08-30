@@ -89,6 +89,10 @@ public sealed class TaskItemConfiguration
             .HasDatabaseName(
                 "ix_task_items_project_id");
 
+        builder.HasIndex(task => task.CreatedByUserId)
+            .HasDatabaseName(
+                "ix_task_items_created_by_user_id");
+
         builder.HasIndex(task => task.AssigneeId)
             .HasDatabaseName(
                 "ix_task_items_assignee_id");

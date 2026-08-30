@@ -1,0 +1,5 @@
+[*.cs]
+
+# EF Core generates constant arrays for composite indexes.
+# CA1861 is not actionable for generated migration code.
+dotnet_diagnostic.CA1861.severity = none
