@@ -199,4 +199,67 @@ public sealed class LoginUserHandlerTests
                 Arg.Any<User>(),
                 Arg.Any<DateTimeOffset>());
     }
+    
+    [Fact]
+    public async Task HandleAsyncWhenUserDoesNotExistThrowsUnauthorizedException()
+    {
+        var userRepository =
+            Substitute.For<IUserRepository>();
+
+        var passwordHasher =
+            Substitute.For<IPasswordHasher>();
+
+        var accessTokenGenerator =
+            Substitute.For<IAccessTokenGenerator>();
+
+        var clock =
+            Substitute.For<IClock>();
+
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        userRepository
+            .GetByNormalizedEmailAsync(
+                "SERGIY@EXAMPLE.COM",
+                cancellationToken)
+            .Returns((User?)null);
+
+        var handler = new LoginUserHandler(
+            userRepository,
+            passwordHasher,
+            accessTokenGenerator,
+            clock);
+
+        var command = new LoginUserCommand(
+            Email: "sergiy@example.com",
+            Password: "StrongPassword123!");
+
+        var exception =
+            await Assert.ThrowsAsync<ApplicationUnauthorizedException>(
+                () => handler.HandleAsync(
+                    command,
+                    cancellationToken));
+
+        Assert.Equal(
+            "Invalid email or password.",
+            exception.Message);
+
+        await userRepository
+            .Received(1)
+            .GetByNormalizedEmailAsync(
+                "SERGIY@EXAMPLE.COM",
+                cancellationToken);
+
+        passwordHasher
+            .DidNotReceive()
+            .Verify(
+                Arg.Any<string>(),
+                Arg.Any<string>());
+
+        accessTokenGenerator
+            .DidNotReceive()
+            .Generate(
+                Arg.Any<User>(),
+                Arg.Any<DateTimeOffset>());
+    }
 }
