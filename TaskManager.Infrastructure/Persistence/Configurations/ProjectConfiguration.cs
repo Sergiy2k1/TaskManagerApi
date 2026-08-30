@@ -4,73 +4,57 @@ using TaskManager.Domain.Entities;
 
 namespace TaskManager.Infrastructure.Persistence.Configurations;
 
-public sealed class ProjectMemberConfiguration
-    : IEntityTypeConfiguration<ProjectMember>
+public sealed class ProjectConfiguration
+    : IEntityTypeConfiguration<Project>
 {
     public void Configure(
-        EntityTypeBuilder<ProjectMember> builder)
+        EntityTypeBuilder<Project> builder)
     {
-        builder.ToTable("project_members");
+        builder.ToTable("projects");
 
-        builder.HasKey(member => member.Id)
-            .HasName("pk_project_members");
+        builder.HasKey(project => project.Id)
+            .HasName("pk_projects");
 
-        builder.Property(member => member.Id)
+        builder.Property(project => project.Id)
             .HasColumnName("id")
             .ValueGeneratedNever();
 
-        builder.Property(member => member.ProjectId)
-            .HasColumnName("project_id")
+        builder.Property(project => project.OwnerId)
+            .HasColumnName("owner_id")
             .IsRequired();
 
-        builder.Property(member => member.UserId)
-            .HasColumnName("user_id")
+        builder.Property(project => project.Name)
+            .HasColumnName("name")
+            .HasMaxLength(Project.MaxNameLength)
             .IsRequired();
 
-        builder.Property(member => member.Role)
-            .HasColumnName("role")
-            .HasConversion<string>()
-            .HasMaxLength(32)
+        builder.Property(project => project.Description)
+            .HasColumnName("description")
+            .HasMaxLength(Project.MaxDescriptionLength);
+
+        builder.Property(project => project.IsArchived)
+            .HasColumnName("is_archived")
             .IsRequired();
 
-        builder.Property(member => member.JoinedAtUtc)
-            .HasColumnName("joined_at_utc")
+        builder.Property(project => project.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
             .IsRequired();
 
-        builder.Property(member => member.UpdatedAtUtc)
+        builder.Property(project => project.UpdatedAtUtc)
             .HasColumnName("updated_at_utc");
 
-        builder.Property(member => member.RemovedAtUtc)
-            .HasColumnName("removed_at_utc");
-
-        builder.Ignore(member => member.IsActive);
-
-        builder.HasOne<Project>()
-            .WithMany()
-            .HasForeignKey(member => member.ProjectId)
-            .OnDelete(DeleteBehavior.Restrict)
-            .HasConstraintName(
-                "fk_project_members_projects_project_id");
+        builder.Property(project => project.ArchivedAtUtc)
+            .HasColumnName("archived_at_utc");
 
         builder.HasOne<User>()
             .WithMany()
-            .HasForeignKey(member => member.UserId)
+            .HasForeignKey(project => project.OwnerId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName(
-                "fk_project_members_users_user_id");
+                "fk_projects_users_owner_id");
 
-        builder.HasIndex(
-                member => new
-                {
-                    member.ProjectId,
-                    member.UserId
-                })
-            .IsUnique()
+        builder.HasIndex(project => project.OwnerId)
             .HasDatabaseName(
-                "ux_project_members_project_id_user_id");
-
-        builder.HasIndex(member => member.UserId)
-            .HasDatabaseName(
-                "ix_project_members_user_id");
+                "ix_projects_owner_id");
     }
 }
