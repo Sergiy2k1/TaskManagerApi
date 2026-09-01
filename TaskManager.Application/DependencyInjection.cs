@@ -5,6 +5,7 @@ using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
+using TaskManager.Application.Projects.ChangeMemberRole;
 
 namespace TaskManager.Application;
 
@@ -32,6 +33,11 @@ public static class DependencyInjection
         services.AddScoped<
             IQueryHandler<GetProjectByIdQuery, GetProjectByIdResult>,
             GetProjectByIdHandler>();
+        services.AddScoped<
+            ICommandHandler<
+                ChangeProjectMemberRoleCommand,
+                ChangeProjectMemberRoleResult>,
+            ChangeProjectMemberRoleHandler>();
 
         return services;
     }

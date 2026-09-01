@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts.Projects;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Projects.AddMember;
+using TaskManager.Application.Projects.ChangeMemberRole;
 using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Projects.GetById;
 
@@ -21,6 +22,10 @@ public sealed class ProjectsController : ControllerBase
         AddProjectMemberCommand,
         AddProjectMemberResult> _addProjectMemberHandler;
 
+    private readonly ICommandHandler<
+        ChangeProjectMemberRoleCommand,
+        ChangeProjectMemberRoleResult> _changeProjectMemberRoleHandler;
+
     private readonly IQueryHandler<
         GetProjectByIdQuery,
         GetProjectByIdResult> _getProjectByIdHandler;
@@ -32,12 +37,16 @@ public sealed class ProjectsController : ControllerBase
         ICommandHandler<
             AddProjectMemberCommand,
             AddProjectMemberResult> addProjectMemberHandler,
+        ICommandHandler<
+            ChangeProjectMemberRoleCommand,
+            ChangeProjectMemberRoleResult> changeProjectMemberRoleHandler,
         IQueryHandler<
             GetProjectByIdQuery,
             GetProjectByIdResult> getProjectByIdHandler)
     {
         _createProjectHandler = createProjectHandler;
         _addProjectMemberHandler = addProjectMemberHandler;
+        _changeProjectMemberRoleHandler = changeProjectMemberRoleHandler;
         _getProjectByIdHandler = getProjectByIdHandler;
     }
 
@@ -108,6 +117,48 @@ public sealed class ProjectsController : ControllerBase
         return StatusCode(
             StatusCodes.Status201Created,
             response);
+    }
+
+    [HttpPatch(
+        "{projectId:guid}/members/{userId:guid}/role")]
+    [ProducesResponseType(
+        typeof(ChangeProjectMemberRoleResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<ChangeProjectMemberRoleResponse>>
+        ChangeMemberRole(
+            Guid projectId,
+            Guid userId,
+            ChangeProjectMemberRoleRequest request,
+            CancellationToken cancellationToken)
+    {
+        var command =
+            new ChangeProjectMemberRoleCommand(
+                ProjectId: projectId,
+                UserId: userId,
+                Role: request.Role);
+
+        var result =
+            await _changeProjectMemberRoleHandler.HandleAsync(
+                command,
+                cancellationToken);
+
+        var response =
+            new ChangeProjectMemberRoleResponse(
+                ProjectMemberId: result.ProjectMemberId,
+                ProjectId: result.ProjectId,
+                UserId: result.UserId,
+                Role: result.Role,
+                UpdatedAtUtc: result.UpdatedAtUtc);
+
+        return Ok(response);
     }
 
     [HttpGet("{projectId:guid}")]
