@@ -6,6 +6,7 @@ using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
 using TaskManager.Application.Projects.ChangeMemberRole;
+using TaskManager.Application.Projects.RemoveMember;
 
 namespace TaskManager.Application;
 
@@ -38,7 +39,11 @@ public static class DependencyInjection
                 ChangeProjectMemberRoleCommand,
                 ChangeProjectMemberRoleResult>,
             ChangeProjectMemberRoleHandler>();
-
+        services.AddScoped<
+            ICommandHandler<
+                RemoveProjectMemberCommand,
+                RemoveProjectMemberResult>,
+            RemoveProjectMemberHandler>();
         return services;
     }
 }

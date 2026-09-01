@@ -6,6 +6,7 @@ using TaskManager.Application.Projects.AddMember;
 using TaskManager.Application.Projects.ChangeMemberRole;
 using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Projects.GetById;
+using TaskManager.Application.Projects.RemoveMember;
 
 namespace TaskManager.Api.Controllers;
 
@@ -26,6 +27,10 @@ public sealed class ProjectsController : ControllerBase
         ChangeProjectMemberRoleCommand,
         ChangeProjectMemberRoleResult> _changeProjectMemberRoleHandler;
 
+    private readonly ICommandHandler<
+        RemoveProjectMemberCommand,
+        RemoveProjectMemberResult> _removeProjectMemberHandler;
+
     private readonly IQueryHandler<
         GetProjectByIdQuery,
         GetProjectByIdResult> _getProjectByIdHandler;
@@ -40,6 +45,9 @@ public sealed class ProjectsController : ControllerBase
         ICommandHandler<
             ChangeProjectMemberRoleCommand,
             ChangeProjectMemberRoleResult> changeProjectMemberRoleHandler,
+        ICommandHandler<
+            RemoveProjectMemberCommand,
+            RemoveProjectMemberResult> removeProjectMemberHandler,
         IQueryHandler<
             GetProjectByIdQuery,
             GetProjectByIdResult> getProjectByIdHandler)
@@ -47,6 +55,7 @@ public sealed class ProjectsController : ControllerBase
         _createProjectHandler = createProjectHandler;
         _addProjectMemberHandler = addProjectMemberHandler;
         _changeProjectMemberRoleHandler = changeProjectMemberRoleHandler;
+        _removeProjectMemberHandler = removeProjectMemberHandler;
         _getProjectByIdHandler = getProjectByIdHandler;
     }
 
@@ -159,6 +168,35 @@ public sealed class ProjectsController : ControllerBase
                 UpdatedAtUtc: result.UpdatedAtUtc);
 
         return Ok(response);
+    }
+
+    [HttpDelete(
+        "{projectId:guid}/members/{userId:guid}")]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RemoveMember(
+        Guid projectId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var command =
+            new RemoveProjectMemberCommand(
+                ProjectId: projectId,
+                UserId: userId);
+
+        await _removeProjectMemberHandler.HandleAsync(
+            command,
+            cancellationToken);
+
+        return NoContent();
     }
 
     [HttpGet("{projectId:guid}")]
