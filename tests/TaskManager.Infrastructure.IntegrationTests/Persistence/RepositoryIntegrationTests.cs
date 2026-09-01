@@ -1,4 +1,5 @@
 using TaskManager.Domain.Entities;
+using TaskManager.Domain.Enums;
 using TaskManager.Infrastructure.IntegrationTests.Database;
 using TaskManager.Infrastructure.Persistence.Repositories;
 using Xunit;
@@ -124,5 +125,87 @@ public sealed class RepositoryIntegrationTests
         Assert.Equal(
             user.NormalizedEmail,
             persistedUser.NormalizedEmail);
+    }
+
+    [Fact]
+    public async Task ProjectMemberRepositoryWhenMemberExistsReturnsPersistedMember()
+    {
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        var createdAtUtc =
+            DateTimeOffset.UtcNow;
+
+        var owner =
+            User.Create(
+                $"owner-{Guid.NewGuid():N}@example.com",
+                "Project Owner",
+                "integration-password-hash",
+                createdAtUtc);
+
+        var memberUser =
+            User.Create(
+                $"member-{Guid.NewGuid():N}@example.com",
+                "Project Member",
+                "integration-password-hash",
+                createdAtUtc);
+
+        var project =
+            Project.Create(
+                owner.Id,
+                "Membership Project",
+                "Project member repository integration test",
+                createdAtUtc);
+
+        var projectMember =
+            ProjectMember.Create(
+                project.Id,
+                memberUser.Id,
+                ProjectMemberRole.Member,
+                createdAtUtc);
+
+        await using var dbContext =
+            _fixture.CreateDbContext();
+
+        var repository =
+            new ProjectMemberRepository(dbContext);
+
+        dbContext.Users.Add(owner);
+        dbContext.Users.Add(memberUser);
+        dbContext.Projects.Add(project);
+
+        repository.Add(projectMember);
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        dbContext.ChangeTracker.Clear();
+
+        var persistedMember =
+            await repository.GetByProjectAndUserAsync(
+                project.Id,
+                memberUser.Id,
+                cancellationToken);
+
+        Assert.NotNull(persistedMember);
+
+        Assert.Equal(
+            projectMember.Id,
+            persistedMember.Id);
+
+        Assert.Equal(
+            project.Id,
+            persistedMember.ProjectId);
+
+        Assert.Equal(
+            memberUser.Id,
+            persistedMember.UserId);
+
+        Assert.Equal(
+            ProjectMemberRole.Member,
+            persistedMember.Role);
+
+        Assert.True(
+            persistedMember.IsActive);
     }
 }

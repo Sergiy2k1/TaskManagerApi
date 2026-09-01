@@ -4,6 +4,7 @@ using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Time;
 using TaskManager.Application.Projects.Create;
 using TaskManager.Domain.Entities;
+using TaskManager.Domain.Enums;
 using Xunit;
 
 namespace TaskManager.Application.UnitTests.Projects.Create;
@@ -11,10 +12,13 @@ namespace TaskManager.Application.UnitTests.Projects.Create;
 public sealed class CreateProjectHandlerTests
 {
     [Fact]
-    public async Task HandleAsyncWithValidCommandCreatesAndPersistsProject()
+    public async Task HandleAsyncWithValidCommandCreatesProjectAndOwnerMembership()
     {
         var projectRepository =
             Substitute.For<IProjectRepository>();
+
+        var projectMemberRepository =
+            Substitute.For<IProjectMemberRepository>();
 
         var unitOfWork =
             Substitute.For<IUnitOfWork>();
@@ -25,7 +29,8 @@ public sealed class CreateProjectHandlerTests
         var clock =
             Substitute.For<IClock>();
 
-        var userId = Guid.NewGuid();
+        var userId =
+            Guid.NewGuid();
 
         var now = new DateTimeOffset(
             2026,
@@ -40,11 +45,13 @@ public sealed class CreateProjectHandlerTests
         clock.UtcNow.Returns(now);
 
         unitOfWork
-            .SaveChangesAsync(Arg.Any<CancellationToken>())
+            .SaveChangesAsync(
+                Arg.Any<CancellationToken>())
             .Returns(1);
 
         var handler = new CreateProjectHandler(
             projectRepository,
+            projectMemberRepository,
             unitOfWork,
             currentUser,
             clock);
@@ -77,8 +84,20 @@ public sealed class CreateProjectHandlerTests
                         project.Description == command.Description &&
                         project.CreatedAtUtc == now));
 
+        projectMemberRepository
+            .Received(1)
+            .Add(
+                Arg.Is<ProjectMember>(
+                    member =>
+                        member.ProjectId == result.ProjectId &&
+                        member.UserId == userId &&
+                        member.Role == ProjectMemberRole.Manager &&
+                        member.JoinedAtUtc == now &&
+                        member.IsActive));
+
         await unitOfWork
             .Received(1)
-            .SaveChangesAsync(cancellationToken);
+            .SaveChangesAsync(
+                cancellationToken);
     }
 }

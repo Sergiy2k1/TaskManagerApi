@@ -1,20 +1,24 @@
 ﻿using TaskManager.Application.Abstractions.Authentication;
+using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Common.Exceptions;
-using TaskManager.Application.Abstractions.Messaging;
+
 namespace TaskManager.Application.Projects.GetById;
 
 public sealed class GetProjectByIdHandler
     : IQueryHandler<GetProjectByIdQuery, GetProjectByIdResult>
 {
     private readonly IProjectRepository _projectRepository;
+    private readonly IProjectMemberRepository _projectMemberRepository;
     private readonly ICurrentUser _currentUser;
 
     public GetProjectByIdHandler(
         IProjectRepository projectRepository,
+        IProjectMemberRepository projectMemberRepository,
         ICurrentUser currentUser)
     {
         _projectRepository = projectRepository;
+        _projectMemberRepository = projectMemberRepository;
         _currentUser = currentUser;
     }
 
@@ -36,11 +40,27 @@ public sealed class GetProjectByIdHandler
                 query.ProjectId,
                 cancellationToken);
 
-        if (project is null ||
-            project.OwnerId != _currentUser.UserId)
+        if (project is null)
         {
             throw new ApplicationNotFoundException(
                 "Project was not found.");
+        }
+
+        if (project.OwnerId != _currentUser.UserId)
+        {
+            var projectMember =
+                await _projectMemberRepository
+                    .GetByProjectAndUserAsync(
+                        project.Id,
+                        _currentUser.UserId,
+                        cancellationToken);
+
+            if (projectMember is null ||
+                !projectMember.IsActive)
+            {
+                throw new ApplicationNotFoundException(
+                    "Project was not found.");
+            }
         }
 
         return new GetProjectByIdResult(

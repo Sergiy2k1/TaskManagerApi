@@ -16,13 +16,16 @@ public static class DependencyInjection
         this IServiceCollection services,
         string connectionString)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            connectionString);
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<IProjectMemberRepository, ProjectMemberRepository>();
+
         services.AddScoped<IUnitOfWork>(serviceProvider =>
             serviceProvider.GetRequiredService<AppDbContext>());
 

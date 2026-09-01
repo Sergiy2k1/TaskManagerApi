@@ -4,6 +4,7 @@ using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Domain.Entities;
+using TaskManager.Domain.Enums;
 using Xunit;
 
 namespace TaskManager.Application.UnitTests.Projects.GetById;
@@ -11,15 +12,19 @@ namespace TaskManager.Application.UnitTests.Projects.GetById;
 public sealed class GetProjectByIdHandlerTests
 {
     [Fact]
-    public async Task HandleAsyncWhenProjectExistsReturnsProject()
+    public async Task HandleAsyncWhenCurrentUserIsOwnerReturnsProject()
     {
         var projectRepository =
             Substitute.For<IProjectRepository>();
 
+        var projectMemberRepository =
+            Substitute.For<IProjectMemberRepository>();
+
         var currentUser =
             Substitute.For<ICurrentUser>();
 
-        var ownerId = Guid.NewGuid();
+        var ownerId =
+            Guid.NewGuid();
 
         var createdAtUtc = new DateTimeOffset(
             2026,
@@ -49,6 +54,7 @@ public sealed class GetProjectByIdHandlerTests
 
         var handler = new GetProjectByIdHandler(
             projectRepository,
+            projectMemberRepository,
             currentUser);
 
         var query = new GetProjectByIdQuery(
@@ -67,24 +73,186 @@ public sealed class GetProjectByIdHandlerTests
         Assert.Equal(project.UpdatedAtUtc, result.UpdatedAtUtc);
         Assert.Equal(project.ArchivedAtUtc, result.ArchivedAtUtc);
 
-        await projectRepository
-            .Received(1)
-            .GetByIdAsync(
-                project.Id,
-                cancellationToken);
+        await projectMemberRepository
+            .DidNotReceive()
+            .GetByProjectAndUserAsync(
+                Arg.Any<Guid>(),
+                Arg.Any<Guid>(),
+                Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task HandleAsyncWhenProjectBelongsToAnotherUserThrowsNotFoundException()
+    public async Task HandleAsyncWhenCurrentUserIsActiveMemberReturnsProject()
     {
         var projectRepository =
             Substitute.For<IProjectRepository>();
 
+        var projectMemberRepository =
+            Substitute.For<IProjectMemberRepository>();
+
         var currentUser =
             Substitute.For<ICurrentUser>();
 
-        var ownerId = Guid.NewGuid();
-        var anotherUserId = Guid.NewGuid();
+        var ownerId =
+            Guid.NewGuid();
+
+        var memberUserId =
+            Guid.NewGuid();
+
+        var createdAtUtc = new DateTimeOffset(
+            2026,
+            8,
+            30,
+            0,
+            0,
+            0,
+            TimeSpan.Zero);
+
+        var project = Project.Create(
+            ownerId: ownerId,
+            name: "Task Manager",
+            description: null,
+            createdAtUtc: createdAtUtc);
+
+        var projectMember = ProjectMember.Create(
+            projectId: project.Id,
+            userId: memberUserId,
+            role: ProjectMemberRole.Member,
+            joinedAtUtc: createdAtUtc);
+
+        currentUser.UserId.Returns(memberUserId);
+
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        projectRepository
+            .GetByIdAsync(
+                project.Id,
+                cancellationToken)
+            .Returns(project);
+
+        projectMemberRepository
+            .GetByProjectAndUserAsync(
+                project.Id,
+                memberUserId,
+                cancellationToken)
+            .Returns(projectMember);
+
+        var handler = new GetProjectByIdHandler(
+            projectRepository,
+            projectMemberRepository,
+            currentUser);
+
+        var query = new GetProjectByIdQuery(
+            ProjectId: project.Id);
+
+        var result = await handler.HandleAsync(
+            query,
+            cancellationToken);
+
+        Assert.Equal(project.Id, result.ProjectId);
+        Assert.Equal(project.OwnerId, result.OwnerId);
+    }
+
+    [Fact]
+    public async Task HandleAsyncWhenCurrentUserIsRemovedMemberThrowsNotFoundException()
+    {
+        var projectRepository =
+            Substitute.For<IProjectRepository>();
+
+        var projectMemberRepository =
+            Substitute.For<IProjectMemberRepository>();
+
+        var currentUser =
+            Substitute.For<ICurrentUser>();
+
+        var ownerId =
+            Guid.NewGuid();
+
+        var memberUserId =
+            Guid.NewGuid();
+
+        var createdAtUtc = new DateTimeOffset(
+            2026,
+            8,
+            30,
+            0,
+            0,
+            0,
+            TimeSpan.Zero);
+
+        var removedAtUtc =
+            createdAtUtc.AddMinutes(1);
+
+        var project = Project.Create(
+            ownerId: ownerId,
+            name: "Task Manager",
+            description: null,
+            createdAtUtc: createdAtUtc);
+
+        var projectMember = ProjectMember.Create(
+            projectId: project.Id,
+            userId: memberUserId,
+            role: ProjectMemberRole.Member,
+            joinedAtUtc: createdAtUtc);
+
+        projectMember.Remove(
+            removedAtUtc);
+
+        currentUser.UserId.Returns(memberUserId);
+
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        projectRepository
+            .GetByIdAsync(
+                project.Id,
+                cancellationToken)
+            .Returns(project);
+
+        projectMemberRepository
+            .GetByProjectAndUserAsync(
+                project.Id,
+                memberUserId,
+                cancellationToken)
+            .Returns(projectMember);
+
+        var handler = new GetProjectByIdHandler(
+            projectRepository,
+            projectMemberRepository,
+            currentUser);
+
+        var query = new GetProjectByIdQuery(
+            ProjectId: project.Id);
+
+        var exception =
+            await Assert.ThrowsAsync<ApplicationNotFoundException>(
+                () => handler.HandleAsync(
+                    query,
+                    cancellationToken));
+
+        Assert.Equal(
+            "Project was not found.",
+            exception.Message);
+    }
+
+    [Fact]
+    public async Task HandleAsyncWhenCurrentUserIsNotMemberThrowsNotFoundException()
+    {
+        var projectRepository =
+            Substitute.For<IProjectRepository>();
+
+        var projectMemberRepository =
+            Substitute.For<IProjectMemberRepository>();
+
+        var currentUser =
+            Substitute.For<ICurrentUser>();
+
+        var ownerId =
+            Guid.NewGuid();
+
+        var anotherUserId =
+            Guid.NewGuid();
 
         var createdAtUtc = new DateTimeOffset(
             2026,
@@ -112,8 +280,16 @@ public sealed class GetProjectByIdHandlerTests
                 cancellationToken)
             .Returns(project);
 
+        projectMemberRepository
+            .GetByProjectAndUserAsync(
+                project.Id,
+                anotherUserId,
+                cancellationToken)
+            .Returns((ProjectMember?)null);
+
         var handler = new GetProjectByIdHandler(
             projectRepository,
+            projectMemberRepository,
             currentUser);
 
         var query = new GetProjectByIdQuery(
@@ -128,24 +304,23 @@ public sealed class GetProjectByIdHandlerTests
         Assert.Equal(
             "Project was not found.",
             exception.Message);
-
-        await projectRepository
-            .Received(1)
-            .GetByIdAsync(
-                project.Id,
-                cancellationToken);
     }
+
     [Fact]
     public async Task HandleAsyncWhenProjectIdIsEmptyThrowsValidationException()
     {
         var projectRepository =
             Substitute.For<IProjectRepository>();
 
+        var projectMemberRepository =
+            Substitute.For<IProjectMemberRepository>();
+
         var currentUser =
             Substitute.For<ICurrentUser>();
 
         var handler = new GetProjectByIdHandler(
             projectRepository,
+            projectMemberRepository,
             currentUser);
 
         var query = new GetProjectByIdQuery(
@@ -171,6 +346,13 @@ public sealed class GetProjectByIdHandlerTests
         await projectRepository
             .DidNotReceive()
             .GetByIdAsync(
+                Arg.Any<Guid>(),
+                Arg.Any<CancellationToken>());
+
+        await projectMemberRepository
+            .DidNotReceive()
+            .GetByProjectAndUserAsync(
+                Arg.Any<Guid>(),
                 Arg.Any<Guid>(),
                 Arg.Any<CancellationToken>());
     }
