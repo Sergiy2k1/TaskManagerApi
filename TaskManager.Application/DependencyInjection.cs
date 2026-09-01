@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TaskManager.Application.Abstractions.Messaging;
+using TaskManager.Application.Projects.AddMember;
 using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Users.Login;
@@ -23,6 +24,10 @@ public static class DependencyInjection
         services.AddScoped<
             ICommandHandler<CreateProjectCommand, CreateProjectResult>,
             CreateProjectHandler>();
+
+        services.AddScoped<
+            ICommandHandler<AddProjectMemberCommand, AddProjectMemberResult>,
+            AddProjectMemberHandler>();
 
         services.AddScoped<
             IQueryHandler<GetProjectByIdQuery, GetProjectByIdResult>,

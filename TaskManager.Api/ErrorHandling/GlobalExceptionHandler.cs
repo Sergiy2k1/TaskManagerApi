@@ -103,6 +103,13 @@ public sealed partial class GlobalExceptionHandler
                     exception.Message
                 ),
 
+            ApplicationForbiddenException =>
+                (
+                    StatusCodes.Status403Forbidden,
+                    "Forbidden",
+                    exception.Message
+                ),
+
             ApplicationNotFoundException =>
                 (
                     StatusCodes.Status404NotFound,
