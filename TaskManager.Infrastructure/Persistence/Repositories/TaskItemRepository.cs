@@ -25,6 +25,22 @@ public sealed class TaskItemRepository
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<TaskItem>> GetByProjectAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.TaskItems
+            .AsNoTracking()
+            .Where(
+                taskItem => taskItem.ProjectId == projectId)
+            .OrderBy(
+                taskItem => taskItem.CreatedAtUtc)
+            .ThenBy(
+                taskItem => taskItem.Id)
+            .ToListAsync(
+                cancellationToken);
+    }
+
     public void Add(
         TaskItem taskItem)
     {

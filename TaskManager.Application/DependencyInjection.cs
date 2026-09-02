@@ -8,6 +8,7 @@ using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Application.Projects.RemoveMember;
 using TaskManager.Application.Tasks.Create;
 using TaskManager.Application.Tasks.GetById;
+using TaskManager.Application.Tasks.GetByProject;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
 
@@ -63,6 +64,12 @@ public static class DependencyInjection
         services.AddScoped<
             IQueryHandler<GetTaskByIdQuery, GetTaskByIdResult>,
             GetTaskByIdHandler>();
+
+        services.AddScoped<
+            IQueryHandler<
+                GetProjectTasksQuery,
+                IReadOnlyList<GetProjectTasksResult>>,
+            GetProjectTasksHandler>();
 
         return services;
     }

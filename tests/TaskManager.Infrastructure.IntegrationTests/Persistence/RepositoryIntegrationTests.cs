@@ -441,4 +441,117 @@ public sealed class RepositoryIntegrationTests
             truncatedTicks,
             value.Offset);
     }
+    [Fact]
+    public async Task TaskItemRepositoryGetByProjectReturnsOnlyProjectTasksInCreationOrder()
+    {
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        var createdAtUtc =
+            DateTimeOffset.UtcNow;
+
+        var owner =
+            User.Create(
+                $"task-list-owner-{Guid.NewGuid():N}@example.com",
+                "Task List Owner",
+                "integration-password-hash",
+                createdAtUtc);
+
+        var project =
+            Project.Create(
+                owner.Id,
+                "Task List Project",
+                "Task list repository integration test",
+                createdAtUtc);
+
+        var anotherProject =
+            Project.Create(
+                owner.Id,
+                "Another Project",
+                null,
+                createdAtUtc);
+
+        var firstTask =
+            TaskItem.Create(
+                projectId: project.Id,
+                createdByUserId: owner.Id,
+                title: "First project task",
+                description: null,
+                priority: TaskPriority.Medium,
+                dueDateUtc: null,
+                createdAtUtc: createdAtUtc.AddMinutes(1));
+
+        var secondTask =
+            TaskItem.Create(
+                projectId: project.Id,
+                createdByUserId: owner.Id,
+                title: "Second project task",
+                description: null,
+                priority: TaskPriority.High,
+                dueDateUtc: null,
+                createdAtUtc: createdAtUtc.AddMinutes(2));
+
+        var anotherProjectTask =
+            TaskItem.Create(
+                projectId: anotherProject.Id,
+                createdByUserId: owner.Id,
+                title: "Another project task",
+                description: null,
+                priority: TaskPriority.Low,
+                dueDateUtc: null,
+                createdAtUtc: createdAtUtc.AddMinutes(3));
+
+        await using var dbContext =
+            _fixture.CreateDbContext();
+
+        var repository =
+            new TaskItemRepository(dbContext);
+
+        dbContext.Users.Add(owner);
+
+        dbContext.Projects.AddRange(
+            project,
+            anotherProject);
+
+        repository.Add(firstTask);
+        repository.Add(secondTask);
+        repository.Add(anotherProjectTask);
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        dbContext.ChangeTracker.Clear();
+
+        var taskItems =
+            await repository.GetByProjectAsync(
+                project.Id,
+                cancellationToken);
+
+        Assert.Equal(
+            2,
+            taskItems.Count);
+
+        Assert.Equal(
+            firstTask.Id,
+            taskItems[0].Id);
+
+        Assert.Equal(
+            secondTask.Id,
+            taskItems[1].Id);
+
+        Assert.All(
+            taskItems,
+            taskItem =>
+                Assert.Equal(
+                    project.Id,
+                    taskItem.ProjectId));
+
+        Assert.DoesNotContain(
+            taskItems,
+            taskItem =>
+                taskItem.Id == anotherProjectTask.Id);
+
+        Assert.Empty(
+            dbContext.ChangeTracker.Entries<TaskItem>());
+    }
 }
