@@ -319,4 +319,126 @@ public sealed class RepositoryIntegrationTests
             member =>
                 Assert.True(member.IsActive));
     }
+
+    [Fact]
+    public async Task TaskItemRepositoryWhenTaskExistsReturnsPersistedTask()
+    {
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        var createdAtUtc =
+            DateTimeOffset.UtcNow;
+
+        var dueDateUtc =
+            createdAtUtc.AddDays(1);
+
+        var owner =
+            User.Create(
+                $"task-owner-{Guid.NewGuid():N}@example.com",
+                "Task Owner",
+                "integration-password-hash",
+                createdAtUtc);
+
+        var project =
+            Project.Create(
+                owner.Id,
+                "Task Repository Project",
+                "Task repository integration test",
+                createdAtUtc);
+
+        var taskItem =
+            TaskItem.Create(
+                projectId: project.Id,
+                createdByUserId: owner.Id,
+                title: "Integration task",
+                description: "Persist and load task item",
+                priority: TaskPriority.High,
+                dueDateUtc: dueDateUtc,
+                createdAtUtc: createdAtUtc);
+
+        await using var dbContext =
+            _fixture.CreateDbContext();
+
+        var repository =
+            new TaskItemRepository(dbContext);
+
+        dbContext.Users.Add(owner);
+        dbContext.Projects.Add(project);
+
+        repository.Add(taskItem);
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        dbContext.ChangeTracker.Clear();
+
+        var persistedTask =
+            await repository.GetByIdAsync(
+                taskItem.Id,
+                cancellationToken);
+
+        Assert.NotNull(persistedTask);
+
+        Assert.Equal(
+            taskItem.Id,
+            persistedTask.Id);
+
+        Assert.Equal(
+            project.Id,
+            persistedTask.ProjectId);
+
+        Assert.Equal(
+            owner.Id,
+            persistedTask.CreatedByUserId);
+
+        Assert.Null(
+            persistedTask.AssigneeId);
+
+        Assert.Equal(
+            "Integration task",
+            persistedTask.Title);
+
+        Assert.Equal(
+            "Persist and load task item",
+            persistedTask.Description);
+
+        Assert.Equal(
+            TaskItemStatus.Backlog,
+            persistedTask.Status);
+
+        Assert.Equal(
+            TaskPriority.High,
+            persistedTask.Priority);
+
+        Assert.NotNull(
+            persistedTask.DueDateUtc);
+
+        Assert.Equal(
+            TruncateToMicroseconds(dueDateUtc),
+            persistedTask.DueDateUtc.Value);
+
+        Assert.Equal(
+            TruncateToMicroseconds(createdAtUtc),
+            persistedTask.CreatedAtUtc);
+
+        Assert.Null(
+            persistedTask.UpdatedAtUtc);
+
+        Assert.Null(
+            persistedTask.CompletedAtUtc);
+    }
+
+    private static DateTimeOffset TruncateToMicroseconds(
+        DateTimeOffset value)
+    {
+        const long ticksPerMicrosecond = 10;
+
+        var truncatedTicks =
+            value.Ticks -
+            value.Ticks % ticksPerMicrosecond;
+
+        return new DateTimeOffset(
+            truncatedTicks,
+            value.Offset);
+    }
 }

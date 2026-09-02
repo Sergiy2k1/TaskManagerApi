@@ -32,7 +32,8 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<IAccessTokenGenerator, JwtAccessTokenGenerator>();
         services.AddSingleton<IClock, SystemClock>();
-
+        services.AddScoped<ITaskItemRepository, TaskItemRepository>();
+        
         return services;
     }
 }
