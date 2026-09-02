@@ -2,6 +2,7 @@ using NSubstitute;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Time;
+using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Projects.ChangeMemberRole;
 using TaskManager.Domain.Entities;
@@ -695,11 +696,16 @@ public sealed class ChangeProjectMemberRoleHandlerTests
         ICurrentUser currentUser,
         IClock clock)
     {
+        var memberManagementPolicy =
+            new ProjectMemberManagementPolicy(
+                projectMemberRepository,
+                currentUser);
+
         return new ChangeProjectMemberRoleHandler(
             projectRepository,
             projectMemberRepository,
             unitOfWork,
-            currentUser,
+            memberManagementPolicy,
             clock);
     }
 

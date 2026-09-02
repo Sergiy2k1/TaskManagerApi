@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using TaskManager.Application.Abstractions.Authorization;
 using TaskManager.Application.Abstractions.Messaging;
+using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Projects.AddMember;
 using TaskManager.Application.Projects.ChangeMemberRole;
 using TaskManager.Application.Projects.Create;
@@ -20,6 +22,10 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(
         this IServiceCollection services)
     {
+        services.AddScoped<
+            IProjectMemberManagementPolicy,
+            ProjectMemberManagementPolicy>();
+
         services.AddScoped<
             ICommandHandler<RegisterUserCommand, RegisterUserResult>,
             RegisterUserHandler>();

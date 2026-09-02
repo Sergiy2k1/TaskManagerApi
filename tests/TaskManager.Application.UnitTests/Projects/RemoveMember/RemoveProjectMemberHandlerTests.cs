@@ -2,6 +2,7 @@ using NSubstitute;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Time;
+using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Projects.RemoveMember;
 using TaskManager.Domain.Entities;
@@ -668,11 +669,16 @@ public sealed class RemoveProjectMemberHandlerTests
         ICurrentUser currentUser,
         IClock clock)
     {
+        var memberManagementPolicy =
+            new ProjectMemberManagementPolicy(
+                projectMemberRepository,
+                currentUser);
+
         return new RemoveProjectMemberHandler(
             projectRepository,
             projectMemberRepository,
             unitOfWork,
-            currentUser,
+            memberManagementPolicy,
             clock);
     }
 

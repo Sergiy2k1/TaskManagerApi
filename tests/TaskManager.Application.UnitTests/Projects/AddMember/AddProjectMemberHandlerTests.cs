@@ -2,6 +2,7 @@ using NSubstitute;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Time;
+using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Projects.AddMember;
 using TaskManager.Domain.Entities;
@@ -793,12 +794,17 @@ public sealed class AddProjectMemberHandlerTests
         ICurrentUser currentUser,
         IClock clock)
     {
+        var memberManagementPolicy =
+            new ProjectMemberManagementPolicy(
+                projectMemberRepository,
+                currentUser);
+
         return new AddProjectMemberHandler(
             projectRepository,
             projectMemberRepository,
             userRepository,
             unitOfWork,
-            currentUser,
+            memberManagementPolicy,
             clock);
     }
 

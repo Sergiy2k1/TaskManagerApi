@@ -1,9 +1,9 @@
-using TaskManager.Application.Abstractions.Authentication;
+using TaskManager.Application.Abstractions.Authorization;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Time;
 using TaskManager.Application.Common.Exceptions;
-using TaskManager.Domain.Enums;
+
 
 namespace TaskManager.Application.Projects.ChangeMemberRole;
 
@@ -15,20 +15,20 @@ public sealed class ChangeProjectMemberRoleHandler
     private readonly IProjectRepository _projectRepository;
     private readonly IProjectMemberRepository _projectMemberRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ICurrentUser _currentUser;
+    private readonly IProjectMemberManagementPolicy _memberManagementPolicy;
     private readonly IClock _clock;
 
     public ChangeProjectMemberRoleHandler(
         IProjectRepository projectRepository,
         IProjectMemberRepository projectMemberRepository,
         IUnitOfWork unitOfWork,
-        ICurrentUser currentUser,
+        IProjectMemberManagementPolicy memberManagementPolicy,
         IClock clock)
     {
         _projectRepository = projectRepository;
         _projectMemberRepository = projectMemberRepository;
         _unitOfWork = unitOfWork;
-        _currentUser = currentUser;
+        _memberManagementPolicy = memberManagementPolicy;
         _clock = clock;
     }
 
@@ -70,10 +70,11 @@ public sealed class ChangeProjectMemberRoleHandler
                 "Project was not found.");
         }
 
-        await EnsureCurrentUserCanManageMembersAsync(
-            project.OwnerId,
-            project.Id,
-            cancellationToken);
+        await _memberManagementPolicy
+            .EnsureCanManageMembersAsync(
+                project.OwnerId,
+                project.Id,
+                cancellationToken);
 
         if (command.UserId == project.OwnerId)
         {
@@ -108,37 +109,5 @@ public sealed class ChangeProjectMemberRoleHandler
             UserId: targetMember.UserId,
             Role: targetMember.Role,
             UpdatedAtUtc: targetMember.UpdatedAtUtc);
-    }
-
-    private async Task EnsureCurrentUserCanManageMembersAsync(
-        Guid ownerId,
-        Guid projectId,
-        CancellationToken cancellationToken)
-    {
-        if (ownerId == _currentUser.UserId)
-        {
-            return;
-        }
-
-        var currentMember =
-            await _projectMemberRepository
-                .GetByProjectAndUserAsync(
-                    projectId,
-                    _currentUser.UserId,
-                    cancellationToken);
-
-        if (currentMember is null ||
-            !currentMember.IsActive)
-        {
-            throw new ApplicationNotFoundException(
-                "Project was not found.");
-        }
-
-        if (currentMember.Role !=
-            ProjectMemberRole.Manager)
-        {
-            throw new ApplicationForbiddenException(
-                "You do not have permission to manage project members.");
-        }
     }
 }
