@@ -6,6 +6,7 @@ using TaskManager.Application.Projects.AddMember;
 using TaskManager.Application.Projects.ChangeMemberRole;
 using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Projects.GetById;
+using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Application.Projects.RemoveMember;
 
 namespace TaskManager.Api.Controllers;
@@ -35,6 +36,10 @@ public sealed class ProjectsController : ControllerBase
         GetProjectByIdQuery,
         GetProjectByIdResult> _getProjectByIdHandler;
 
+    private readonly IQueryHandler<
+        GetProjectMembersQuery,
+        IReadOnlyList<GetProjectMembersResult>> _getProjectMembersHandler;
+
     public ProjectsController(
         ICommandHandler<
             CreateProjectCommand,
@@ -50,13 +55,17 @@ public sealed class ProjectsController : ControllerBase
             RemoveProjectMemberResult> removeProjectMemberHandler,
         IQueryHandler<
             GetProjectByIdQuery,
-            GetProjectByIdResult> getProjectByIdHandler)
+            GetProjectByIdResult> getProjectByIdHandler,
+        IQueryHandler<
+            GetProjectMembersQuery,
+            IReadOnlyList<GetProjectMembersResult>> getProjectMembersHandler)
     {
         _createProjectHandler = createProjectHandler;
         _addProjectMemberHandler = addProjectMemberHandler;
         _changeProjectMemberRoleHandler = changeProjectMemberRoleHandler;
         _removeProjectMemberHandler = removeProjectMemberHandler;
         _getProjectByIdHandler = getProjectByIdHandler;
+        _getProjectMembersHandler = getProjectMembersHandler;
     }
 
     [HttpPost]
@@ -126,6 +135,43 @@ public sealed class ProjectsController : ControllerBase
         return StatusCode(
             StatusCodes.Status201Created,
             response);
+    }
+
+    [HttpGet("{projectId:guid}/members")]
+    [ProducesResponseType(
+        typeof(IReadOnlyList<GetProjectMemberResponse>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<GetProjectMemberResponse>>>
+        GetMembers(
+            Guid projectId,
+            CancellationToken cancellationToken)
+    {
+        var query =
+            new GetProjectMembersQuery(
+                ProjectId: projectId);
+
+        var result =
+            await _getProjectMembersHandler.HandleAsync(
+                query,
+                cancellationToken);
+
+        var response =
+            result
+                .Select(
+                    member =>
+                        new GetProjectMemberResponse(
+                            ProjectMemberId: member.ProjectMemberId,
+                            UserId: member.UserId,
+                            Role: member.Role,
+                            JoinedAtUtc: member.JoinedAtUtc,
+                            UpdatedAtUtc: member.UpdatedAtUtc))
+                .ToList();
+
+        return Ok(response);
     }
 
     [HttpPatch(

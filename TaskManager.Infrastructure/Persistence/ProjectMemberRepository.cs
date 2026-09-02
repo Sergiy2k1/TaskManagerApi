@@ -28,6 +28,22 @@ public sealed class ProjectMemberRepository
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ProjectMember>>
+        GetActiveByProjectAsync(
+            Guid projectId,
+            CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.ProjectMembers
+            .AsNoTracking()
+            .Where(
+                member =>
+                    member.ProjectId == projectId &&
+                    member.RemovedAtUtc == null)
+            .OrderBy(member => member.JoinedAtUtc)
+            .ThenBy(member => member.UserId)
+            .ToListAsync(cancellationToken);
+    }
+
     public void Add(
         ProjectMember projectMember)
     {

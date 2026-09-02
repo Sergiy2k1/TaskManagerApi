@@ -208,4 +208,115 @@ public sealed class RepositoryIntegrationTests
         Assert.True(
             persistedMember.IsActive);
     }
+
+    [Fact]
+    public async Task ProjectMemberRepositoryGetActiveByProjectReturnsOnlyActiveMembers()
+    {
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        var createdAtUtc =
+            DateTimeOffset.UtcNow;
+
+        var owner =
+            User.Create(
+                $"owner-list-{Guid.NewGuid():N}@example.com",
+                "Project Owner",
+                "integration-password-hash",
+                createdAtUtc);
+
+        var activeUser =
+            User.Create(
+                $"active-member-{Guid.NewGuid():N}@example.com",
+                "Active Member",
+                "integration-password-hash",
+                createdAtUtc);
+
+        var removedUser =
+            User.Create(
+                $"removed-member-{Guid.NewGuid():N}@example.com",
+                "Removed Member",
+                "integration-password-hash",
+                createdAtUtc);
+
+        var project =
+            Project.Create(
+                owner.Id,
+                "Members List Project",
+                "Active members integration test",
+                createdAtUtc);
+
+        var ownerMembership =
+            ProjectMember.Create(
+                project.Id,
+                owner.Id,
+                ProjectMemberRole.Manager,
+                createdAtUtc);
+
+        var activeMembership =
+            ProjectMember.Create(
+                project.Id,
+                activeUser.Id,
+                ProjectMemberRole.Member,
+                createdAtUtc.AddMinutes(1));
+
+        var removedMembership =
+            ProjectMember.Create(
+                project.Id,
+                removedUser.Id,
+                ProjectMemberRole.Member,
+                createdAtUtc.AddMinutes(2));
+
+        removedMembership.Remove(
+            createdAtUtc.AddMinutes(3));
+
+        await using var dbContext =
+            _fixture.CreateDbContext();
+
+        var repository =
+            new ProjectMemberRepository(dbContext);
+
+        dbContext.Users.AddRange(
+            owner,
+            activeUser,
+            removedUser);
+
+        dbContext.Projects.Add(project);
+
+        repository.Add(ownerMembership);
+        repository.Add(activeMembership);
+        repository.Add(removedMembership);
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        dbContext.ChangeTracker.Clear();
+
+        var members =
+            await repository.GetActiveByProjectAsync(
+                project.Id,
+                cancellationToken);
+
+        Assert.Equal(
+            2,
+            members.Count);
+
+        Assert.Equal(
+            ownerMembership.Id,
+            members[0].Id);
+
+        Assert.Equal(
+            activeMembership.Id,
+            members[1].Id);
+
+        Assert.DoesNotContain(
+            members,
+            member =>
+                member.Id == removedMembership.Id);
+
+        Assert.All(
+            members,
+            member =>
+                Assert.True(member.IsActive));
+    }
 }
