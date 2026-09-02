@@ -5,6 +5,7 @@ using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Tasks.Create;
 using TaskManager.Application.Tasks.GetById;
 using TaskManager.Application.Tasks.GetByProject;
+using TaskManager.Application.Tasks.Update;
 
 namespace TaskManager.Api.Controllers;
 
@@ -25,6 +26,10 @@ public sealed class TasksController : ControllerBase
         GetProjectTasksQuery,
         IReadOnlyList<GetProjectTasksResult>> _getProjectTasksHandler;
 
+    private readonly ICommandHandler<
+        UpdateTaskCommand,
+        UpdateTaskResult> _updateTaskHandler;
+
     public TasksController(
         ICommandHandler<
             CreateTaskCommand,
@@ -34,11 +39,15 @@ public sealed class TasksController : ControllerBase
             GetTaskByIdResult> getTaskByIdHandler,
         IQueryHandler<
             GetProjectTasksQuery,
-            IReadOnlyList<GetProjectTasksResult>> getProjectTasksHandler)
+            IReadOnlyList<GetProjectTasksResult>> getProjectTasksHandler,
+        ICommandHandler<
+            UpdateTaskCommand,
+            UpdateTaskResult> updateTaskHandler)
     {
         _createTaskHandler = createTaskHandler;
         _getTaskByIdHandler = getTaskByIdHandler;
         _getProjectTasksHandler = getProjectTasksHandler;
+        _updateTaskHandler = updateTaskHandler;
     }
 
     [HttpPost]
@@ -127,6 +136,54 @@ public sealed class TasksController : ControllerBase
                             UpdatedAtUtc: task.UpdatedAtUtc,
                             CompletedAtUtc: task.CompletedAtUtc))
                 .ToArray();
+
+        return Ok(response);
+    }
+
+    [HttpPut("{taskItemId:guid}")]
+    [ProducesResponseType(
+        typeof(UpdateTaskResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<UpdateTaskResponse>> Update(
+        Guid projectId,
+        Guid taskItemId,
+        UpdateTaskRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command =
+            new UpdateTaskCommand(
+                ProjectId: projectId,
+                TaskItemId: taskItemId,
+                Title: request.Title,
+                Description: request.Description,
+                Priority: request.Priority,
+                DueDateUtc: request.DueDateUtc);
+
+        var result =
+            await _updateTaskHandler.HandleAsync(
+                command,
+                cancellationToken);
+
+        var response =
+            new UpdateTaskResponse(
+                TaskItemId: result.TaskItemId,
+                ProjectId: result.ProjectId,
+                CreatedByUserId: result.CreatedByUserId,
+                AssigneeId: result.AssigneeId,
+                Title: result.Title,
+                Description: result.Description,
+                Status: result.Status,
+                Priority: result.Priority,
+                DueDateUtc: result.DueDateUtc,
+                CreatedAtUtc: result.CreatedAtUtc,
+                UpdatedAtUtc: result.UpdatedAtUtc,
+                CompletedAtUtc: result.CompletedAtUtc);
 
         return Ok(response);
     }

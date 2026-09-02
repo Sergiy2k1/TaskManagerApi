@@ -9,6 +9,7 @@ using TaskManager.Application.Projects.RemoveMember;
 using TaskManager.Application.Tasks.Create;
 using TaskManager.Application.Tasks.GetById;
 using TaskManager.Application.Tasks.GetByProject;
+using TaskManager.Application.Tasks.Update;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
 
@@ -70,6 +71,10 @@ public static class DependencyInjection
                 GetProjectTasksQuery,
                 IReadOnlyList<GetProjectTasksResult>>,
             GetProjectTasksHandler>();
+
+        services.AddScoped<
+            ICommandHandler<UpdateTaskCommand, UpdateTaskResult>,
+            UpdateTaskHandler>();
 
         return services;
     }

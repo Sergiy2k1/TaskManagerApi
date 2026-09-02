@@ -427,7 +427,122 @@ public sealed class RepositoryIntegrationTests
         Assert.Null(
             persistedTask.CompletedAtUtc);
     }
+    [Fact]
+    public async Task TaskItemRepositoryTrackedTaskPersistsUpdates()
+    {
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
 
+        var createdAtUtc =
+            DateTimeOffset.UtcNow;
+
+        var changedAtUtc =
+            createdAtUtc.AddHours(1);
+
+        var newDueDateUtc =
+            createdAtUtc.AddDays(2);
+
+        var owner =
+            User.Create(
+                $"task-update-owner-{Guid.NewGuid():N}@example.com",
+                "Task Update Owner",
+                "integration-password-hash",
+                createdAtUtc);
+
+        var project =
+            Project.Create(
+                owner.Id,
+                "Task Update Project",
+                "Task update repository integration test",
+                createdAtUtc);
+
+        var taskItem =
+            TaskItem.Create(
+                projectId: project.Id,
+                createdByUserId: owner.Id,
+                title: "Original task",
+                description: "Original description",
+                priority: TaskPriority.Low,
+                dueDateUtc: null,
+                createdAtUtc: createdAtUtc);
+
+        await using var dbContext =
+            _fixture.CreateDbContext();
+
+        var repository =
+            new TaskItemRepository(dbContext);
+
+        dbContext.Users.Add(owner);
+        dbContext.Projects.Add(project);
+
+        repository.Add(taskItem);
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        dbContext.ChangeTracker.Clear();
+
+        var trackedTask =
+            await repository.GetByIdAsync(
+                taskItem.Id,
+                cancellationToken);
+
+        Assert.NotNull(trackedTask);
+
+        trackedTask.Rename(
+            "Updated task",
+            changedAtUtc);
+
+        trackedTask.ChangeDescription(
+            "Updated description",
+            changedAtUtc);
+
+        trackedTask.ChangePriority(
+            TaskPriority.Critical,
+            changedAtUtc);
+
+        trackedTask.ChangeDueDate(
+            newDueDateUtc,
+            changedAtUtc);
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        dbContext.ChangeTracker.Clear();
+
+        var persistedTask =
+            await repository.GetByIdAsync(
+                taskItem.Id,
+                cancellationToken);
+
+        Assert.NotNull(persistedTask);
+
+        Assert.Equal(
+            "Updated task",
+            persistedTask.Title);
+
+        Assert.Equal(
+            "Updated description",
+            persistedTask.Description);
+
+        Assert.Equal(
+            TaskPriority.Critical,
+            persistedTask.Priority);
+
+        Assert.NotNull(
+            persistedTask.DueDateUtc);
+
+        Assert.Equal(
+            TruncateToMicroseconds(newDueDateUtc),
+            persistedTask.DueDateUtc.Value);
+
+        Assert.NotNull(
+            persistedTask.UpdatedAtUtc);
+
+        Assert.Equal(
+            TruncateToMicroseconds(changedAtUtc),
+            persistedTask.UpdatedAtUtc.Value);
+    }
     private static DateTimeOffset TruncateToMicroseconds(
         DateTimeOffset value)
     {
