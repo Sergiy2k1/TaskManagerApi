@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts.Tasks;
 using TaskManager.Application.Abstractions.Messaging;
+using TaskManager.Application.Tasks.Assign;
 using TaskManager.Application.Tasks.Create;
 using TaskManager.Application.Tasks.GetById;
 using TaskManager.Application.Tasks.GetByProject;
+using TaskManager.Application.Tasks.Unassign;
 using TaskManager.Application.Tasks.Update;
 
 namespace TaskManager.Api.Controllers;
@@ -30,6 +32,14 @@ public sealed class TasksController : ControllerBase
         UpdateTaskCommand,
         UpdateTaskResult> _updateTaskHandler;
 
+    private readonly ICommandHandler<
+        AssignTaskCommand,
+        AssignTaskResult> _assignTaskHandler;
+
+    private readonly ICommandHandler<
+        UnassignTaskCommand,
+        UnassignTaskResult> _unassignTaskHandler;
+
     public TasksController(
         ICommandHandler<
             CreateTaskCommand,
@@ -42,12 +52,20 @@ public sealed class TasksController : ControllerBase
             IReadOnlyList<GetProjectTasksResult>> getProjectTasksHandler,
         ICommandHandler<
             UpdateTaskCommand,
-            UpdateTaskResult> updateTaskHandler)
+            UpdateTaskResult> updateTaskHandler,
+        ICommandHandler<
+            AssignTaskCommand,
+            AssignTaskResult> assignTaskHandler,
+        ICommandHandler<
+            UnassignTaskCommand,
+            UnassignTaskResult> unassignTaskHandler)
     {
         _createTaskHandler = createTaskHandler;
         _getTaskByIdHandler = getTaskByIdHandler;
         _getProjectTasksHandler = getProjectTasksHandler;
         _updateTaskHandler = updateTaskHandler;
+        _assignTaskHandler = assignTaskHandler;
+        _unassignTaskHandler = unassignTaskHandler;
     }
 
     [HttpPost]
@@ -186,6 +204,69 @@ public sealed class TasksController : ControllerBase
                 CompletedAtUtc: result.CompletedAtUtc);
 
         return Ok(response);
+    }
+
+    [HttpPut("{taskItemId:guid}/assignee")]
+    [ProducesResponseType(
+        typeof(AssignTaskResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AssignTaskResponse>> Assign(
+        Guid projectId,
+        Guid taskItemId,
+        AssignTaskRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command =
+            new AssignTaskCommand(
+                ProjectId: projectId,
+                TaskItemId: taskItemId,
+                AssigneeId: request.AssigneeId);
+
+        var result =
+            await _assignTaskHandler.HandleAsync(
+                command,
+                cancellationToken);
+
+        var response =
+            new AssignTaskResponse(
+                TaskItemId: result.TaskItemId,
+                ProjectId: result.ProjectId,
+                AssigneeId: result.AssigneeId,
+                UpdatedAtUtc: result.UpdatedAtUtc);
+
+        return Ok(response);
+    }
+
+    [HttpDelete("{taskItemId:guid}/assignee")]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Unassign(
+        Guid projectId,
+        Guid taskItemId,
+        CancellationToken cancellationToken)
+    {
+        var command =
+            new UnassignTaskCommand(
+                ProjectId: projectId,
+                TaskItemId: taskItemId);
+
+        await _unassignTaskHandler.HandleAsync(
+            command,
+            cancellationToken);
+
+        return NoContent();
     }
 
     [HttpGet("{taskItemId:guid}")]

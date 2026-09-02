@@ -14,6 +14,8 @@ using TaskManager.Application.Tasks.GetByProject;
 using TaskManager.Application.Tasks.Update;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
+using TaskManager.Application.Tasks.Assign;
+using TaskManager.Application.Tasks.Unassign;
 
 namespace TaskManager.Application;
 
@@ -81,6 +83,12 @@ public static class DependencyInjection
         services.AddScoped<
             ICommandHandler<UpdateTaskCommand, UpdateTaskResult>,
             UpdateTaskHandler>();
+        services.AddScoped<
+            ICommandHandler<AssignTaskCommand, AssignTaskResult>,
+            AssignTaskHandler>();
+        services.AddScoped<
+            ICommandHandler<UnassignTaskCommand, UnassignTaskResult>,
+            UnassignTaskHandler>();
 
         return services;
     }

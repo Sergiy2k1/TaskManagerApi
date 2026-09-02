@@ -543,6 +543,106 @@ public sealed class RepositoryIntegrationTests
             TruncateToMicroseconds(changedAtUtc),
             persistedTask.UpdatedAtUtc.Value);
     }
+    [Fact]
+    public async Task TaskItemRepositoryTrackedTaskPersistsAssignment()
+    {
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        var createdAtUtc =
+            DateTimeOffset.UtcNow;
+
+        var changedAtUtc =
+            createdAtUtc.AddHours(1);
+
+        var owner =
+            User.Create(
+                $"task-assign-owner-{Guid.NewGuid():N}@example.com",
+                "Task Assign Owner",
+                "integration-password-hash",
+                createdAtUtc);
+
+        var assignee =
+            User.Create(
+                $"task-assignee-{Guid.NewGuid():N}@example.com",
+                "Task Assignee",
+                "integration-password-hash",
+                createdAtUtc);
+
+        var project =
+            Project.Create(
+                owner.Id,
+                "Task Assign Project",
+                "Task assignment repository integration test",
+                createdAtUtc);
+
+        var taskItem =
+            TaskItem.Create(
+                projectId: project.Id,
+                createdByUserId: owner.Id,
+                title: "Task to assign",
+                description: null,
+                priority: TaskPriority.Medium,
+                dueDateUtc: null,
+                createdAtUtc: createdAtUtc);
+
+        await using var dbContext =
+            _fixture.CreateDbContext();
+
+        var repository =
+            new TaskItemRepository(dbContext);
+
+        dbContext.Users.AddRange(
+            owner,
+            assignee);
+
+        dbContext.Projects.Add(
+            project);
+
+        repository.Add(
+            taskItem);
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        dbContext.ChangeTracker.Clear();
+
+        var trackedTask =
+            await repository.GetByIdAsync(
+                taskItem.Id,
+                cancellationToken);
+
+        Assert.NotNull(
+            trackedTask);
+
+        trackedTask.Assign(
+            assignee.Id,
+            changedAtUtc);
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+
+        dbContext.ChangeTracker.Clear();
+
+        var persistedTask =
+            await repository.GetByIdAsync(
+                taskItem.Id,
+                cancellationToken);
+
+        Assert.NotNull(
+            persistedTask);
+
+        Assert.Equal(
+            assignee.Id,
+            persistedTask.AssigneeId);
+
+        Assert.NotNull(
+            persistedTask.UpdatedAtUtc);
+
+        Assert.Equal(
+            TruncateToMicroseconds(changedAtUtc),
+            persistedTask.UpdatedAtUtc.Value);
+    }
     private static DateTimeOffset TruncateToMicroseconds(
         DateTimeOffset value)
     {
