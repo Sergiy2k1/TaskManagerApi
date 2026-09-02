@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts.Tasks;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Tasks.Create;
+using TaskManager.Application.Tasks.GetById;
 
 namespace TaskManager.Api.Controllers;
 
@@ -15,12 +16,20 @@ public sealed class TasksController : ControllerBase
         CreateTaskCommand,
         CreateTaskResult> _createTaskHandler;
 
+    private readonly IQueryHandler<
+        GetTaskByIdQuery,
+        GetTaskByIdResult> _getTaskByIdHandler;
+
     public TasksController(
         ICommandHandler<
             CreateTaskCommand,
-            CreateTaskResult> createTaskHandler)
+            CreateTaskResult> createTaskHandler,
+        IQueryHandler<
+            GetTaskByIdQuery,
+            GetTaskByIdResult> getTaskByIdHandler)
     {
         _createTaskHandler = createTaskHandler;
+        _getTaskByIdHandler = getTaskByIdHandler;
     }
 
     [HttpPost]
@@ -67,5 +76,46 @@ public sealed class TasksController : ControllerBase
         return StatusCode(
             StatusCodes.Status201Created,
             response);
+    }
+
+    [HttpGet("{taskItemId:guid}")]
+    [ProducesResponseType(
+        typeof(GetTaskByIdResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GetTaskByIdResponse>> GetById(
+        Guid projectId,
+        Guid taskItemId,
+        CancellationToken cancellationToken)
+    {
+        var query =
+            new GetTaskByIdQuery(
+                ProjectId: projectId,
+                TaskItemId: taskItemId);
+
+        var result =
+            await _getTaskByIdHandler.HandleAsync(
+                query,
+                cancellationToken);
+
+        var response =
+            new GetTaskByIdResponse(
+                TaskItemId: result.TaskItemId,
+                ProjectId: result.ProjectId,
+                CreatedByUserId: result.CreatedByUserId,
+                AssigneeId: result.AssigneeId,
+                Title: result.Title,
+                Description: result.Description,
+                Status: result.Status,
+                Priority: result.Priority,
+                DueDateUtc: result.DueDateUtc,
+                CreatedAtUtc: result.CreatedAtUtc,
+                UpdatedAtUtc: result.UpdatedAtUtc,
+                CompletedAtUtc: result.CompletedAtUtc);
+
+        return Ok(response);
     }
 }
