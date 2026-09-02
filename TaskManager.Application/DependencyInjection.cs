@@ -1,13 +1,14 @@
 using Microsoft.Extensions.DependencyInjection;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Projects.AddMember;
+using TaskManager.Application.Projects.ChangeMemberRole;
 using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Projects.GetById;
+using TaskManager.Application.Projects.GetMembers;
+using TaskManager.Application.Projects.RemoveMember;
+using TaskManager.Application.Tasks.Create;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
-using TaskManager.Application.Projects.ChangeMemberRole;
-using TaskManager.Application.Projects.RemoveMember;
-using TaskManager.Application.Projects.GetMembers;
 
 namespace TaskManager.Application;
 
@@ -35,21 +36,29 @@ public static class DependencyInjection
         services.AddScoped<
             IQueryHandler<GetProjectByIdQuery, GetProjectByIdResult>,
             GetProjectByIdHandler>();
+
         services.AddScoped<
             ICommandHandler<
                 ChangeProjectMemberRoleCommand,
                 ChangeProjectMemberRoleResult>,
             ChangeProjectMemberRoleHandler>();
+
         services.AddScoped<
             ICommandHandler<
                 RemoveProjectMemberCommand,
                 RemoveProjectMemberResult>,
             RemoveProjectMemberHandler>();
+
         services.AddScoped<
             IQueryHandler<
                 GetProjectMembersQuery,
                 IReadOnlyList<GetProjectMembersResult>>,
             GetProjectMembersHandler>();
+
+        services.AddScoped<
+            ICommandHandler<CreateTaskCommand, CreateTaskResult>,
+            CreateTaskHandler>();
+
         return services;
     }
 }
