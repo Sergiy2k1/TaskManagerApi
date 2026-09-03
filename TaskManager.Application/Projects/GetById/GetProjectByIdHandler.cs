@@ -1,4 +1,4 @@
-﻿using TaskManager.Application.Abstractions.Authentication;
+﻿using TaskManager.Application.Abstractions.Authorization;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Common.Exceptions;
@@ -9,17 +9,14 @@ public sealed class GetProjectByIdHandler
     : IQueryHandler<GetProjectByIdQuery, GetProjectByIdResult>
 {
     private readonly IProjectRepository _projectRepository;
-    private readonly IProjectMemberRepository _projectMemberRepository;
-    private readonly ICurrentUser _currentUser;
+    private readonly IProjectAccessPolicy _projectAccessPolicy;
 
     public GetProjectByIdHandler(
         IProjectRepository projectRepository,
-        IProjectMemberRepository projectMemberRepository,
-        ICurrentUser currentUser)
+        IProjectAccessPolicy projectAccessPolicy)
     {
         _projectRepository = projectRepository;
-        _projectMemberRepository = projectMemberRepository;
-        _currentUser = currentUser;
+        _projectAccessPolicy = projectAccessPolicy;
     }
 
     public async Task<GetProjectByIdResult> HandleAsync(
@@ -46,22 +43,10 @@ public sealed class GetProjectByIdHandler
                 "Project was not found.");
         }
 
-        if (project.OwnerId != _currentUser.UserId)
-        {
-            var projectMember =
-                await _projectMemberRepository
-                    .GetByProjectAndUserAsync(
-                        project.Id,
-                        _currentUser.UserId,
-                        cancellationToken);
-
-            if (projectMember is null ||
-                !projectMember.IsActive)
-            {
-                throw new ApplicationNotFoundException(
-                    "Project was not found.");
-            }
-        }
+        await _projectAccessPolicy.EnsureHasAccessAsync(
+            project.OwnerId,
+            project.Id,
+            cancellationToken);
 
         return new GetProjectByIdResult(
             ProjectId: project.Id,

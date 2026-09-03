@@ -1,6 +1,7 @@
 using NSubstitute;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
+using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Domain.Entities;
@@ -52,10 +53,11 @@ public sealed class GetProjectByIdHandlerTests
                 cancellationToken)
             .Returns(project);
 
-        var handler = new GetProjectByIdHandler(
-            projectRepository,
-            projectMemberRepository,
-            currentUser);
+        var handler =
+            CreateHandler(
+                projectRepository,
+                projectMemberRepository,
+                currentUser);
 
         var query = new GetProjectByIdQuery(
             ProjectId: project.Id);
@@ -138,10 +140,11 @@ public sealed class GetProjectByIdHandlerTests
                 cancellationToken)
             .Returns(projectMember);
 
-        var handler = new GetProjectByIdHandler(
-            projectRepository,
-            projectMemberRepository,
-            currentUser);
+        var handler =
+            CreateHandler(
+                projectRepository,
+                projectMemberRepository,
+                currentUser);
 
         var query = new GetProjectByIdQuery(
             ProjectId: project.Id);
@@ -217,10 +220,11 @@ public sealed class GetProjectByIdHandlerTests
                 cancellationToken)
             .Returns(projectMember);
 
-        var handler = new GetProjectByIdHandler(
-            projectRepository,
-            projectMemberRepository,
-            currentUser);
+        var handler =
+            CreateHandler(
+                projectRepository,
+                projectMemberRepository,
+                currentUser);
 
         var query = new GetProjectByIdQuery(
             ProjectId: project.Id);
@@ -287,10 +291,11 @@ public sealed class GetProjectByIdHandlerTests
                 cancellationToken)
             .Returns((ProjectMember?)null);
 
-        var handler = new GetProjectByIdHandler(
-            projectRepository,
-            projectMemberRepository,
-            currentUser);
+        var handler =
+            CreateHandler(
+                projectRepository,
+                projectMemberRepository,
+                currentUser);
 
         var query = new GetProjectByIdQuery(
             ProjectId: project.Id);
@@ -318,10 +323,11 @@ public sealed class GetProjectByIdHandlerTests
         var currentUser =
             Substitute.For<ICurrentUser>();
 
-        var handler = new GetProjectByIdHandler(
-            projectRepository,
-            projectMemberRepository,
-            currentUser);
+        var handler =
+            CreateHandler(
+                projectRepository,
+                projectMemberRepository,
+                currentUser);
 
         var query = new GetProjectByIdQuery(
             ProjectId: Guid.Empty);
@@ -355,5 +361,20 @@ public sealed class GetProjectByIdHandlerTests
                 Arg.Any<Guid>(),
                 Arg.Any<Guid>(),
                 Arg.Any<CancellationToken>());
+    }
+
+    private static GetProjectByIdHandler CreateHandler(
+        IProjectRepository projectRepository,
+        IProjectMemberRepository projectMemberRepository,
+        ICurrentUser currentUser)
+    {
+        var projectAccessPolicy =
+            new ProjectAccessPolicy(
+                projectMemberRepository,
+                currentUser);
+
+        return new GetProjectByIdHandler(
+            projectRepository,
+            projectAccessPolicy);
     }
 }

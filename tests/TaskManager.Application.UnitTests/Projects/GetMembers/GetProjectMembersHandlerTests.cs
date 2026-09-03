@@ -1,6 +1,7 @@
 using NSubstitute;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
+using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Domain.Entities;
@@ -431,10 +432,15 @@ public sealed class GetProjectMembersHandlerTests
         IProjectMemberRepository projectMemberRepository,
         ICurrentUser currentUser)
     {
+        var projectAccessPolicy =
+            new ProjectAccessPolicy(
+                projectMemberRepository,
+                currentUser);
+
         return new GetProjectMembersHandler(
             projectRepository,
             projectMemberRepository,
-            currentUser);
+            projectAccessPolicy);
     }
 
     private static DateTimeOffset CreateUtcTime()
