@@ -1,6 +1,7 @@
 using NSubstitute;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
+using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Tasks.GetById;
 using TaskManager.Domain.Entities;
@@ -819,11 +820,15 @@ public sealed class GetTaskByIdHandlerTests
         ITaskItemRepository taskItemRepository,
         ICurrentUser currentUser)
     {
+        var projectAccessPolicy =
+            new ProjectAccessPolicy(
+                projectMemberRepository,
+                currentUser);
+
         return new GetTaskByIdHandler(
             projectRepository,
-            projectMemberRepository,
             taskItemRepository,
-            currentUser);
+            projectAccessPolicy);
     }
 
     private static DateTimeOffset CreateUtcTime()

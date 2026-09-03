@@ -8,14 +8,14 @@ using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Application.Projects.RemoveMember;
+using TaskManager.Application.Tasks.Assign;
 using TaskManager.Application.Tasks.Create;
 using TaskManager.Application.Tasks.GetById;
 using TaskManager.Application.Tasks.GetByProject;
+using TaskManager.Application.Tasks.Unassign;
 using TaskManager.Application.Tasks.Update;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
-using TaskManager.Application.Tasks.Assign;
-using TaskManager.Application.Tasks.Unassign;
 
 namespace TaskManager.Application;
 
@@ -27,6 +27,10 @@ public static class DependencyInjection
         services.AddScoped<
             IProjectMemberManagementPolicy,
             ProjectMemberManagementPolicy>();
+
+        services.AddScoped<
+            IProjectAccessPolicy,
+            ProjectAccessPolicy>();
 
         services.AddScoped<
             ICommandHandler<RegisterUserCommand, RegisterUserResult>,
@@ -83,9 +87,11 @@ public static class DependencyInjection
         services.AddScoped<
             ICommandHandler<UpdateTaskCommand, UpdateTaskResult>,
             UpdateTaskHandler>();
+
         services.AddScoped<
             ICommandHandler<AssignTaskCommand, AssignTaskResult>,
             AssignTaskHandler>();
+
         services.AddScoped<
             ICommandHandler<UnassignTaskCommand, UnassignTaskResult>,
             UnassignTaskHandler>();

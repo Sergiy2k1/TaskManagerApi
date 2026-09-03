@@ -1,4 +1,5 @@
 using TaskManager.Application.Abstractions.Authentication;
+using TaskManager.Application.Abstractions.Authorization;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Time;
@@ -11,25 +12,25 @@ public sealed class CreateTaskHandler
     : ICommandHandler<CreateTaskCommand, CreateTaskResult>
 {
     private readonly IProjectRepository _projectRepository;
-    private readonly IProjectMemberRepository _projectMemberRepository;
     private readonly ITaskItemRepository _taskItemRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _currentUser;
+    private readonly IProjectAccessPolicy _projectAccessPolicy;
     private readonly IClock _clock;
 
     public CreateTaskHandler(
         IProjectRepository projectRepository,
-        IProjectMemberRepository projectMemberRepository,
         ITaskItemRepository taskItemRepository,
         IUnitOfWork unitOfWork,
         ICurrentUser currentUser,
+        IProjectAccessPolicy projectAccessPolicy,
         IClock clock)
     {
         _projectRepository = projectRepository;
-        _projectMemberRepository = projectMemberRepository;
         _taskItemRepository = taskItemRepository;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
+        _projectAccessPolicy = projectAccessPolicy;
         _clock = clock;
     }
 
@@ -64,7 +65,7 @@ public sealed class CreateTaskHandler
                 "Project was not found.");
         }
 
-        await EnsureCurrentUserHasProjectAccessAsync(
+        await _projectAccessPolicy.EnsureHasAccessAsync(
             project.OwnerId,
             project.Id,
             cancellationToken);
@@ -105,30 +106,5 @@ public sealed class CreateTaskHandler
             Priority: taskItem.Priority,
             DueDateUtc: taskItem.DueDateUtc,
             CreatedAtUtc: taskItem.CreatedAtUtc);
-    }
-
-    private async Task EnsureCurrentUserHasProjectAccessAsync(
-        Guid ownerId,
-        Guid projectId,
-        CancellationToken cancellationToken)
-    {
-        if (ownerId == _currentUser.UserId)
-        {
-            return;
-        }
-
-        var currentMember =
-            await _projectMemberRepository
-                .GetByProjectAndUserAsync(
-                    projectId,
-                    _currentUser.UserId,
-                    cancellationToken);
-
-        if (currentMember is null ||
-            !currentMember.IsActive)
-        {
-            throw new ApplicationNotFoundException(
-                "Project was not found.");
-        }
     }
 }

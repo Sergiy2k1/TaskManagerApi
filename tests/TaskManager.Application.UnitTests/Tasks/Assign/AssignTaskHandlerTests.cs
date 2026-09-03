@@ -8,6 +8,7 @@ using TaskManager.Domain.Entities;
 using TaskManager.Domain.Enums;
 using TaskManager.Domain.Exceptions;
 using Xunit;
+using TaskManager.Application.Common.Authorization;
 
 namespace TaskManager.Application.UnitTests.Tasks.Assign;
 
@@ -1375,12 +1376,17 @@ public sealed class AssignTaskHandlerTests
         ICurrentUser currentUser,
         IClock clock)
     {
+        var projectAccessPolicy =
+            new ProjectAccessPolicy(
+                projectMemberRepository,
+                currentUser);
+
         return new AssignTaskHandler(
             projectRepository,
             projectMemberRepository,
             taskItemRepository,
             unitOfWork,
-            currentUser,
+            projectAccessPolicy,
             clock);
     }
 

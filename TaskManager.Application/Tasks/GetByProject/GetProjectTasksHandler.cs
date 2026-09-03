@@ -1,4 +1,4 @@
-using TaskManager.Application.Abstractions.Authentication;
+using TaskManager.Application.Abstractions.Authorization;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Common.Exceptions;
@@ -11,20 +11,17 @@ public sealed class GetProjectTasksHandler
         IReadOnlyList<GetProjectTasksResult>>
 {
     private readonly IProjectRepository _projectRepository;
-    private readonly IProjectMemberRepository _projectMemberRepository;
     private readonly ITaskItemRepository _taskItemRepository;
-    private readonly ICurrentUser _currentUser;
+    private readonly IProjectAccessPolicy _projectAccessPolicy;
 
     public GetProjectTasksHandler(
         IProjectRepository projectRepository,
-        IProjectMemberRepository projectMemberRepository,
         ITaskItemRepository taskItemRepository,
-        ICurrentUser currentUser)
+        IProjectAccessPolicy projectAccessPolicy)
     {
         _projectRepository = projectRepository;
-        _projectMemberRepository = projectMemberRepository;
         _taskItemRepository = taskItemRepository;
-        _currentUser = currentUser;
+        _projectAccessPolicy = projectAccessPolicy;
     }
 
     public async Task<IReadOnlyList<GetProjectTasksResult>> HandleAsync(
@@ -51,22 +48,10 @@ public sealed class GetProjectTasksHandler
                 "Project was not found.");
         }
 
-        if (project.OwnerId != _currentUser.UserId)
-        {
-            var currentMember =
-                await _projectMemberRepository
-                    .GetByProjectAndUserAsync(
-                        project.Id,
-                        _currentUser.UserId,
-                        cancellationToken);
-
-            if (currentMember is null ||
-                !currentMember.IsActive)
-            {
-                throw new ApplicationNotFoundException(
-                    "Project was not found.");
-            }
-        }
+        await _projectAccessPolicy.EnsureHasAccessAsync(
+            project.OwnerId,
+            project.Id,
+            cancellationToken);
 
         var taskItems =
             await _taskItemRepository.GetByProjectAsync(

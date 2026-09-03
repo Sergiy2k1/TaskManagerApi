@@ -2,6 +2,7 @@ using NSubstitute;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Abstractions.Time;
+using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Tasks.Create;
 using TaskManager.Domain.Entities;
@@ -736,12 +737,17 @@ public sealed class CreateTaskHandlerTests
         ICurrentUser currentUser,
         IClock clock)
     {
+        var projectAccessPolicy =
+            new ProjectAccessPolicy(
+                projectMemberRepository,
+                currentUser);
+
         return new CreateTaskHandler(
             projectRepository,
-            projectMemberRepository,
             taskItemRepository,
             unitOfWork,
             currentUser,
+            projectAccessPolicy,
             clock);
     }
 
