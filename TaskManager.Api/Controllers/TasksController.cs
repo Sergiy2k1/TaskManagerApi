@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts.Tasks;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Tasks.Assign;
+using TaskManager.Application.Tasks.ChangeStatus;
 using TaskManager.Application.Tasks.Create;
 using TaskManager.Application.Tasks.GetById;
 using TaskManager.Application.Tasks.GetByProject;
@@ -40,6 +41,10 @@ public sealed class TasksController : ControllerBase
         UnassignTaskCommand,
         UnassignTaskResult> _unassignTaskHandler;
 
+    private readonly ICommandHandler<
+        ChangeTaskStatusCommand,
+        ChangeTaskStatusResult> _changeTaskStatusHandler;
+
     public TasksController(
         ICommandHandler<
             CreateTaskCommand,
@@ -58,7 +63,10 @@ public sealed class TasksController : ControllerBase
             AssignTaskResult> assignTaskHandler,
         ICommandHandler<
             UnassignTaskCommand,
-            UnassignTaskResult> unassignTaskHandler)
+            UnassignTaskResult> unassignTaskHandler,
+        ICommandHandler<
+            ChangeTaskStatusCommand,
+            ChangeTaskStatusResult> changeTaskStatusHandler)
     {
         _createTaskHandler = createTaskHandler;
         _getTaskByIdHandler = getTaskByIdHandler;
@@ -66,6 +74,7 @@ public sealed class TasksController : ControllerBase
         _updateTaskHandler = updateTaskHandler;
         _assignTaskHandler = assignTaskHandler;
         _unassignTaskHandler = unassignTaskHandler;
+        _changeTaskStatusHandler = changeTaskStatusHandler;
     }
 
     [HttpPost]
@@ -267,6 +276,44 @@ public sealed class TasksController : ControllerBase
             cancellationToken);
 
         return NoContent();
+    }
+
+    [HttpPut("{taskItemId:guid}/status")]
+    [ProducesResponseType(
+        typeof(ChangeTaskStatusResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(
+        StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<ChangeTaskStatusResponse>> ChangeStatus(
+        Guid projectId,
+        Guid taskItemId,
+        ChangeTaskStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command =
+            new ChangeTaskStatusCommand(
+                ProjectId: projectId,
+                TaskItemId: taskItemId,
+                Status: request.Status);
+
+        var result =
+            await _changeTaskStatusHandler.HandleAsync(
+                command,
+                cancellationToken);
+
+        var response =
+            new ChangeTaskStatusResponse(
+                TaskItemId: result.TaskItemId,
+                ProjectId: result.ProjectId,
+                Status: result.Status,
+                UpdatedAtUtc: result.UpdatedAtUtc,
+                CompletedAtUtc: result.CompletedAtUtc);
+
+        return Ok(response);
     }
 
     [HttpGet("{taskItemId:guid}")]
