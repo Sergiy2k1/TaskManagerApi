@@ -26,6 +26,16 @@ public sealed class ProjectRepository
                 cancellationToken);
     }
 
+    public Task<Project?> GetByIdForUpdateAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Projects
+            .SingleOrDefaultAsync(
+                project => project.Id == projectId,
+                cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Project>> GetAccessibleByUserIdAsync(
         Guid userId,
         CancellationToken cancellationToken = default)
