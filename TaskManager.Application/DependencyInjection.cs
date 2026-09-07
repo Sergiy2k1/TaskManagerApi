@@ -5,6 +5,7 @@ using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Projects.AddMember;
 using TaskManager.Application.Projects.ChangeMemberRole;
 using TaskManager.Application.Projects.Create;
+using TaskManager.Application.Projects.GetAll;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Application.Projects.RemoveMember;
@@ -52,6 +53,10 @@ public static class DependencyInjection
         services.AddScoped<
             IQueryHandler<GetProjectByIdQuery, GetProjectByIdResult>,
             GetProjectByIdHandler>();
+
+        services.AddScoped<
+            IQueryHandler<GetProjectsQuery, IReadOnlyList<GetProjectsResult>>,
+            GetProjectsHandler>();
 
         services.AddScoped<
             ICommandHandler<
