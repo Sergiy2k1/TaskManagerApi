@@ -9,6 +9,7 @@ using TaskManager.Application.Projects.GetAll;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Application.Projects.RemoveMember;
+using TaskManager.Application.Projects.Update;
 using TaskManager.Application.Tasks.Assign;
 using TaskManager.Application.Tasks.ChangeStatus;
 using TaskManager.Application.Tasks.Create;
@@ -45,6 +46,10 @@ public static class DependencyInjection
         services.AddScoped<
             ICommandHandler<CreateProjectCommand, CreateProjectResult>,
             CreateProjectHandler>();
+
+        services.AddScoped<
+            ICommandHandler<UpdateProjectCommand, UpdateProjectResult>,
+            UpdateProjectHandler>();
 
         services.AddScoped<
             ICommandHandler<AddProjectMemberCommand, AddProjectMemberResult>,
