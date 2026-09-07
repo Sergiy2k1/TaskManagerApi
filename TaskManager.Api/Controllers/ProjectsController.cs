@@ -5,6 +5,7 @@ using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Projects.AddMember;
 using TaskManager.Application.Projects.ChangeMemberRole;
 using TaskManager.Application.Projects.Create;
+using TaskManager.Application.Projects.GetAll;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Application.Projects.RemoveMember;
@@ -37,6 +38,10 @@ public sealed class ProjectsController : ControllerBase
         GetProjectByIdResult> _getProjectByIdHandler;
 
     private readonly IQueryHandler<
+        GetProjectsQuery,
+        IReadOnlyList<GetProjectsResult>> _getProjectsHandler;
+
+    private readonly IQueryHandler<
         GetProjectMembersQuery,
         IReadOnlyList<GetProjectMembersResult>> _getProjectMembersHandler;
 
@@ -57,6 +62,9 @@ public sealed class ProjectsController : ControllerBase
             GetProjectByIdQuery,
             GetProjectByIdResult> getProjectByIdHandler,
         IQueryHandler<
+            GetProjectsQuery,
+            IReadOnlyList<GetProjectsResult>> getProjectsHandler,
+        IQueryHandler<
             GetProjectMembersQuery,
             IReadOnlyList<GetProjectMembersResult>> getProjectMembersHandler)
     {
@@ -65,6 +73,7 @@ public sealed class ProjectsController : ControllerBase
         _changeProjectMemberRoleHandler = changeProjectMemberRoleHandler;
         _removeProjectMemberHandler = removeProjectMemberHandler;
         _getProjectByIdHandler = getProjectByIdHandler;
+        _getProjectsHandler = getProjectsHandler;
         _getProjectMembersHandler = getProjectMembersHandler;
     }
 
@@ -98,18 +107,44 @@ public sealed class ProjectsController : ControllerBase
             response);
     }
 
+    [HttpGet]
+    [ProducesResponseType(
+        typeof(IReadOnlyList<GetProjectResponse>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<GetProjectResponse>>> GetAll(
+        CancellationToken cancellationToken)
+    {
+        var result =
+            await _getProjectsHandler.HandleAsync(
+                new GetProjectsQuery(),
+                cancellationToken);
+
+        var response =
+            result
+                .Select(
+                    project =>
+                        new GetProjectResponse(
+                            ProjectId: project.ProjectId,
+                            OwnerId: project.OwnerId,
+                            Name: project.Name,
+                            Description: project.Description,
+                            IsArchived: project.IsArchived,
+                            CreatedAtUtc: project.CreatedAtUtc,
+                            UpdatedAtUtc: project.UpdatedAtUtc,
+                            ArchivedAtUtc: project.ArchivedAtUtc))
+                .ToList();
+
+        return Ok(response);
+    }
+
     [HttpPost("{projectId:guid}/members")]
     [ProducesResponseType(
         typeof(AddProjectMemberResponse),
         StatusCodes.Status201Created)]
-    [ProducesResponseType(
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(
-        StatusCodes.Status404NotFound)]
-    [ProducesResponseType(
-        StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AddProjectMemberResponse>> AddMember(
         Guid projectId,
         AddProjectMemberRequest request,
@@ -141,10 +176,8 @@ public sealed class ProjectsController : ControllerBase
     [ProducesResponseType(
         typeof(IReadOnlyList<GetProjectMemberResponse>),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<GetProjectMemberResponse>>>
         GetMembers(
             Guid projectId,
@@ -174,19 +207,14 @@ public sealed class ProjectsController : ControllerBase
         return Ok(response);
     }
 
-    [HttpPatch(
-        "{projectId:guid}/members/{userId:guid}/role")]
+    [HttpPatch("{projectId:guid}/members/{userId:guid}/role")]
     [ProducesResponseType(
         typeof(ChangeProjectMemberRoleResponse),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(
-        StatusCodes.Status404NotFound)]
-    [ProducesResponseType(
-        StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ChangeProjectMemberRoleResponse>>
         ChangeMemberRole(
             Guid projectId,
@@ -216,18 +244,12 @@ public sealed class ProjectsController : ControllerBase
         return Ok(response);
     }
 
-    [HttpDelete(
-        "{projectId:guid}/members/{userId:guid}")]
-    [ProducesResponseType(
-        StatusCodes.Status204NoContent)]
-    [ProducesResponseType(
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(
-        StatusCodes.Status404NotFound)]
-    [ProducesResponseType(
-        StatusCodes.Status409Conflict)]
+    [HttpDelete("{projectId:guid}/members/{userId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> RemoveMember(
         Guid projectId,
         Guid userId,
@@ -249,8 +271,7 @@ public sealed class ProjectsController : ControllerBase
     [ProducesResponseType(
         typeof(GetProjectByIdResponse),
         StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GetProjectByIdResponse>> GetById(
         Guid projectId,
         CancellationToken cancellationToken)
