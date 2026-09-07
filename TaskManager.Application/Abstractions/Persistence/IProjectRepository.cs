@@ -8,6 +8,10 @@ public interface IProjectRepository
         Guid projectId,
         CancellationToken cancellationToken = default);
 
+    Task<Project?> GetByIdForUpdateAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Project>> GetAccessibleByUserIdAsync(
         Guid userId,
         CancellationToken cancellationToken = default);
