@@ -65,6 +65,12 @@ public sealed class UpdateProjectHandler
                 "Only the project owner can update the project.");
         }
 
+        if (project.IsArchived)
+        {
+            throw new ApplicationConflictException(
+                "Archived project cannot be updated.");
+        }
+
         var changedAtUtc =
             _clock.UtcNow;
 
