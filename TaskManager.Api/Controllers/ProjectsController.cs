@@ -9,6 +9,7 @@ using TaskManager.Application.Projects.GetAll;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Application.Projects.RemoveMember;
+using TaskManager.Application.Projects.Update;
 
 namespace TaskManager.Api.Controllers;
 
@@ -20,6 +21,10 @@ public sealed class ProjectsController : ControllerBase
     private readonly ICommandHandler<
         CreateProjectCommand,
         CreateProjectResult> _createProjectHandler;
+
+    private readonly ICommandHandler<
+        UpdateProjectCommand,
+        UpdateProjectResult> _updateProjectHandler;
 
     private readonly ICommandHandler<
         AddProjectMemberCommand,
@@ -50,6 +55,9 @@ public sealed class ProjectsController : ControllerBase
             CreateProjectCommand,
             CreateProjectResult> createProjectHandler,
         ICommandHandler<
+            UpdateProjectCommand,
+            UpdateProjectResult> updateProjectHandler,
+        ICommandHandler<
             AddProjectMemberCommand,
             AddProjectMemberResult> addProjectMemberHandler,
         ICommandHandler<
@@ -69,6 +77,7 @@ public sealed class ProjectsController : ControllerBase
             IReadOnlyList<GetProjectMembersResult>> getProjectMembersHandler)
     {
         _createProjectHandler = createProjectHandler;
+        _updateProjectHandler = updateProjectHandler;
         _addProjectMemberHandler = addProjectMemberHandler;
         _changeProjectMemberRoleHandler = changeProjectMemberRoleHandler;
         _removeProjectMemberHandler = removeProjectMemberHandler;
@@ -105,6 +114,42 @@ public sealed class ProjectsController : ControllerBase
         return StatusCode(
             StatusCodes.Status201Created,
             response);
+    }
+
+    [HttpPut("{projectId:guid}")]
+    [ProducesResponseType(
+        typeof(UpdateProjectResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<UpdateProjectResponse>> Update(
+        Guid projectId,
+        UpdateProjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new UpdateProjectCommand(
+            ProjectId: projectId,
+            Name: request.Name,
+            Description: request.Description);
+
+        var result =
+            await _updateProjectHandler.HandleAsync(
+                command,
+                cancellationToken);
+
+        var response = new UpdateProjectResponse(
+            ProjectId: result.ProjectId,
+            OwnerId: result.OwnerId,
+            Name: result.Name,
+            Description: result.Description,
+            IsArchived: result.IsArchived,
+            CreatedAtUtc: result.CreatedAtUtc,
+            UpdatedAtUtc: result.UpdatedAtUtc,
+            ArchivedAtUtc: result.ArchivedAtUtc);
+
+        return Ok(response);
     }
 
     [HttpGet]
