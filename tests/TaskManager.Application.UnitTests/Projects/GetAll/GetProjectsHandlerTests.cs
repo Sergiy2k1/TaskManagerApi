@@ -152,7 +152,12 @@ public sealed class GetProjectsHandlerTests
                 projectRepository,
                 currentUser);
 
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => handler.HandleAsync(null!));
+            () => handler.HandleAsync(
+                null!,
+                cancellationToken));
     }
 }
