@@ -26,6 +26,25 @@ public sealed class ProjectRepository
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Project>> GetAccessibleByUserIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Projects
+            .AsNoTracking()
+            .Where(
+                project =>
+                    project.OwnerId == userId ||
+                    _dbContext.ProjectMembers.Any(
+                        member =>
+                            member.ProjectId == project.Id &&
+                            member.UserId == userId &&
+                            member.IsActive))
+            .OrderByDescending(project => project.UpdatedAtUtc ?? project.CreatedAtUtc)
+            .ThenBy(project => project.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public void Add(Project project)
     {
         ArgumentNullException.ThrowIfNull(project);
