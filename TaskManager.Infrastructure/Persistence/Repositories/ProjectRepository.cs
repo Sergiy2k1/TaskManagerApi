@@ -49,7 +49,7 @@ public sealed class ProjectRepository
                         member =>
                             member.ProjectId == project.Id &&
                             member.UserId == userId &&
-                            member.IsActive))
+                            member.RemovedAtUtc == null))
             .OrderByDescending(project => project.UpdatedAtUtc ?? project.CreatedAtUtc)
             .ThenBy(project => project.Name)
             .ToListAsync(cancellationToken);
