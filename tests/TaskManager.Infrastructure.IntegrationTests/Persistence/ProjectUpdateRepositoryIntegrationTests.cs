@@ -23,7 +23,7 @@ public sealed class ProjectUpdateRepositoryIntegrationTests
             TestContext.Current.CancellationToken;
 
         var createdAtUtc =
-            DateTimeOffset.UtcNow;
+            TruncateToMicroseconds(DateTimeOffset.UtcNow);
 
         var owner =
             User.Create(
@@ -91,5 +91,20 @@ public sealed class ProjectUpdateRepositoryIntegrationTests
         Assert.Equal(
             changedAtUtc,
             persistedProject.UpdatedAtUtc);
+    }
+
+    private static DateTimeOffset TruncateToMicroseconds(
+        DateTimeOffset value)
+    {
+        const long ticksPerMicrosecond =
+            TimeSpan.TicksPerMillisecond / 1000;
+
+        var utcTicks =
+            value.UtcTicks -
+            value.UtcTicks % ticksPerMicrosecond;
+
+        return new DateTimeOffset(
+            utcTicks,
+            TimeSpan.Zero);
     }
 }
