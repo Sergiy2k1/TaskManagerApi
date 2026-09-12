@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+**/TestResults/
+**/*.user
+**/*.DotSettings.user
+
+.git/
+.github/
+.idea/
+.vs/
+_ReSharper.Caches/
+
+.env
+.env.*
+!.env.example
+
+README.md

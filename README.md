@@ -21,9 +21,11 @@ Implemented today:
 - EF Core migrations;
 - PostgreSQL persistence;
 - Testcontainers-based integration tests;
+- Docker multi-stage build;
+- Docker Compose local environment with PostgreSQL and automatic migrations;
 - nullable reference types, analyzers, code-style checks, and warnings as errors.
 
-Production-readiness work is intentionally incremental. Docker, CI, API-level integration tests, pagination/filtering, optimistic concurrency, health checks, observability, and rate limiting are part of the next roadmap stages and are **not presented here as already implemented**.
+Production-readiness work is intentionally incremental. CI, API-level integration tests, pagination/filtering, optimistic concurrency, health checks, observability, and rate limiting are part of the next roadmap stages and are **not presented here as already implemented**.
 
 ---
 
@@ -39,6 +41,7 @@ Production-readiness work is intentionally incremental. Docker, CI, API-level in
 - **xUnit**
 - **NSubstitute**
 - **Testcontainers for PostgreSQL**
+- **Docker / Docker Compose**
 - **Microsoft.Testing.Platform**
 - **OpenAPI**
 
@@ -88,6 +91,11 @@ The goal is dependency inversion without introducing framework-heavy indirection
 
 ```text
 TaskManagerApi/
+├── Dockerfile
+├── compose.yaml
+├── .dockerignore
+├── .env.example
+│
 ├── TaskManager.Api/
 │   ├── Authentication/
 │   ├── Contracts/
@@ -432,9 +440,85 @@ This makes compiler warnings and analyzer findings part of the normal quality ga
 
 ## Local development
 
-### Prerequisites
+### Recommended: Docker Compose
 
-For running the API locally:
+The quickest way to start the complete local environment is Docker Compose.
+
+Prerequisite:
+
+- Docker Desktop or another Docker-compatible runtime with Compose support.
+
+Clone the repository and start the stack:
+
+```bash
+git clone https://github.com/Sergiy2k1/TaskManagerApi.git
+cd TaskManagerApi
+docker compose up
+```
+
+On the first run Docker builds the application image, starts PostgreSQL, waits for the database health check, applies EF Core migrations through the one-shot `migrate` service, and only then starts the API.
+
+The API is available at:
+
+```text
+http://localhost:5135
+```
+
+OpenAPI in the Compose development environment:
+
+```text
+http://localhost:5135/openapi/v1.json
+```
+
+The Compose stack contains three services:
+
+- `postgres` — PostgreSQL 17 with a persistent named volume and `pg_isready` health check;
+- `migrate` — one-shot EF Core migration runner that waits for PostgreSQL readiness;
+- `api` — the published ASP.NET Core application, which starts only after migrations complete successfully.
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
+Stop it and delete the local PostgreSQL volume:
+
+```bash
+docker compose down -v
+```
+
+Docker Compose includes local-development defaults so `docker compose up` works without creating an `.env` file. To customize ports, PostgreSQL credentials, or JWT configuration, copy:
+
+```bash
+cp .env.example .env
+```
+
+On PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+The default credentials and JWT key are explicitly development-only and must not be reused in a deployed environment.
+
+### Docker build design
+
+The `Dockerfile` uses a multi-stage build:
+
+1. **build** — uses the full .NET SDK to restore tools/packages and publish the API;
+2. **migrations** — reuses the SDK build stage only for the one-shot `dotnet ef database update` Compose service;
+3. **final** — uses the smaller ASP.NET Core runtime image and copies only published output.
+
+This keeps SDK tooling and source code out of the runtime API image. The API also runs as the non-root user provided by the official .NET image.
+
+Project files are copied before the rest of the source so Docker can reuse the NuGet restore layer when application code changes but dependencies do not.
+
+### Manual local setup
+
+If you prefer to run the API directly from the .NET SDK instead of Docker Compose, use the following setup.
+
+#### Prerequisites
 
 - .NET 10 SDK;
 - PostgreSQL.
@@ -676,21 +760,20 @@ The project intentionally does not add microservices, Kafka, Redis, Kubernetes, 
 
 The next production-oriented stages are intentionally incremental:
 
-1. Dockerfile and Docker Compose for API + PostgreSQL;
-2. GitHub Actions CI;
-3. HTTP/API integration tests with `WebApplicationFactory<Program>` and PostgreSQL Testcontainers;
-4. pagination, filtering, searching, and sorting for list endpoints;
-5. optimistic concurrency for project/task updates;
-6. consistency and transaction review;
-7. liveness/readiness health checks;
-8. structured logging and trace correlation;
-9. OpenTelemetry traces and basic metrics;
-10. ASP.NET Core rate limiting, especially for login/register;
-11. authentication/session improvements if justified;
-12. API/validation/security review;
-13. PostgreSQL and EF Core performance review;
-14. handler-dispatch refactoring only if constructor/registration growth justifies it;
-15. short Architecture Decision Records under `docs/adr`.
+1. GitHub Actions CI;
+2. HTTP/API integration tests with `WebApplicationFactory<Program>` and PostgreSQL Testcontainers;
+3. pagination, filtering, searching, and sorting for list endpoints;
+4. optimistic concurrency for project/task updates;
+5. consistency and transaction review;
+6. liveness/readiness health checks;
+7. structured logging and trace correlation;
+8. OpenTelemetry traces and basic metrics;
+9. ASP.NET Core rate limiting, especially for login/register;
+10. authentication/session improvements if justified;
+11. API/validation/security review;
+12. PostgreSQL and EF Core performance review;
+13. handler-dispatch refactoring only if constructor/registration growth justifies it;
+14. short Architecture Decision Records under `docs/adr`.
 
 ---
 

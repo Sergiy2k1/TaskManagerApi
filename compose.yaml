@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-task_manager}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskmanager_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - taskmanager-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  migrate:
+    build:
+      context: .
+      target: migrations
+    environment:
+      ConnectionStrings__Database: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-task_manager};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-taskmanager_dev_password}"
+      Jwt__Issuer: ${JWT_ISSUER:-TaskManager.Api}
+      Jwt__Audience: ${JWT_AUDIENCE:-TaskManager.Client}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-VGFza01hbmFnZXItbG9jYWwtZGV2ZWxvcG1lbnQtc2lnbmluZy1rZXktMjAyNg==}
+      Jwt__AccessTokenLifetimeMinutes: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-15}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      target: final
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Database: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-task_manager};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-taskmanager_dev_password}"
+      Jwt__Issuer: ${JWT_ISSUER:-TaskManager.Api}
+      Jwt__Audience: ${JWT_AUDIENCE:-TaskManager.Client}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-VGFza01hbmFnZXItbG9jYWwtZGV2ZWxvcG1lbnQtc2lnbmluZy1rZXktMjAyNg==}
+      Jwt__AccessTokenLifetimeMinutes: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-15}
+    ports:
+      - "${API_PORT:-5135}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  taskmanager-postgres:
