@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts.Projects;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Projects.AddMember;
+using TaskManager.Application.Projects.Archive;
 using TaskManager.Application.Projects.ChangeMemberRole;
 using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Projects.GetAll;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Application.Projects.RemoveMember;
+using TaskManager.Application.Projects.Restore;
 using TaskManager.Application.Projects.Update;
 
 namespace TaskManager.Api.Controllers;
@@ -25,6 +27,14 @@ public sealed class ProjectsController : ControllerBase
     private readonly ICommandHandler<
         UpdateProjectCommand,
         UpdateProjectResult> _updateProjectHandler;
+
+    private readonly ICommandHandler<
+        ArchiveProjectCommand,
+        ArchiveProjectResult> _archiveProjectHandler;
+
+    private readonly ICommandHandler<
+        RestoreProjectCommand,
+        RestoreProjectResult> _restoreProjectHandler;
 
     private readonly ICommandHandler<
         AddProjectMemberCommand,
@@ -58,6 +68,12 @@ public sealed class ProjectsController : ControllerBase
             UpdateProjectCommand,
             UpdateProjectResult> updateProjectHandler,
         ICommandHandler<
+            ArchiveProjectCommand,
+            ArchiveProjectResult> archiveProjectHandler,
+        ICommandHandler<
+            RestoreProjectCommand,
+            RestoreProjectResult> restoreProjectHandler,
+        ICommandHandler<
             AddProjectMemberCommand,
             AddProjectMemberResult> addProjectMemberHandler,
         ICommandHandler<
@@ -78,6 +94,8 @@ public sealed class ProjectsController : ControllerBase
     {
         _createProjectHandler = createProjectHandler;
         _updateProjectHandler = updateProjectHandler;
+        _archiveProjectHandler = archiveProjectHandler;
+        _restoreProjectHandler = restoreProjectHandler;
         _addProjectMemberHandler = addProjectMemberHandler;
         _changeProjectMemberRoleHandler = changeProjectMemberRoleHandler;
         _removeProjectMemberHandler = removeProjectMemberHandler;
@@ -150,6 +168,62 @@ public sealed class ProjectsController : ControllerBase
             ArchivedAtUtc: result.ArchivedAtUtc);
 
         return Ok(response);
+    }
+
+    [HttpPost("{projectId:guid}/archive")]
+    [ProducesResponseType(
+        typeof(ProjectLifecycleResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjectLifecycleResponse>> Archive(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        var result =
+            await _archiveProjectHandler.HandleAsync(
+                new ArchiveProjectCommand(projectId),
+                cancellationToken);
+
+        return Ok(
+            new ProjectLifecycleResponse(
+                ProjectId: result.ProjectId,
+                OwnerId: result.OwnerId,
+                Name: result.Name,
+                Description: result.Description,
+                IsArchived: result.IsArchived,
+                CreatedAtUtc: result.CreatedAtUtc,
+                UpdatedAtUtc: result.UpdatedAtUtc,
+                ArchivedAtUtc: result.ArchivedAtUtc));
+    }
+
+    [HttpPost("{projectId:guid}/restore")]
+    [ProducesResponseType(
+        typeof(ProjectLifecycleResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjectLifecycleResponse>> Restore(
+        Guid projectId,
+        CancellationToken cancellationToken)
+    {
+        var result =
+            await _restoreProjectHandler.HandleAsync(
+                new RestoreProjectCommand(projectId),
+                cancellationToken);
+
+        return Ok(
+            new ProjectLifecycleResponse(
+                ProjectId: result.ProjectId,
+                OwnerId: result.OwnerId,
+                Name: result.Name,
+                Description: result.Description,
+                IsArchived: result.IsArchived,
+                CreatedAtUtc: result.CreatedAtUtc,
+                UpdatedAtUtc: result.UpdatedAtUtc,
+                ArchivedAtUtc: result.ArchivedAtUtc));
     }
 
     [HttpGet]
