@@ -1,52 +1,123 @@
 @host = http://localhost:5135
-@accessToken = YOUR_ACCESS_TOKEN
+@email = sergiy@example.com
+@password = StrongPassword123
 
 
-### Ping
+### 1. Ping
 GET {{host}}/api/ping
 Accept: application/json
 
 
-### Register
-POST {{host}}/api/auth/register
-Content-Type: application/json
-Accept: application/json
-
-{
-  "email": "new.user@example.com",
-  "displayName": "New User",
-  "password": "StrongPassword123"
-}
-
-
-### Login
+### 2. Login
+# Run this request first. Rider will save accessToken automatically.
 POST {{host}}/api/auth/login
 Content-Type: application/json
 Accept: application/json
 
 {
-  "email": "sergiy@example.com",
-  "password": "StrongPassword123"
+  "email": "{{email}}",
+  "password": "{{password}}"
 }
 
+> {%
+    client.global.set("accessToken", response.body.accessToken);
+%}
 
-### Profile without token
+
+### 3. Profile with token
 GET {{host}}/api/profile
 Accept: application/json
+Authorization: Bearer {{accessToken}}
 
 
-### Profile with token
-GET {{host}}/api/profile
-Accept: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJUYXNrTWFuYWdlci5DbGllbnQiLCJpc3MiOiJUYXNrTWFuYWdlci5BcGkiLCJleHAiOjE3ODc2ODgxMDksImlhdCI6MTc4NzY4NzIwOSwibmJmIjoxNzg3Njg3MjA5LCJzdWIiOiI4YzZhNGViYS1hNzkxLTRmMDAtOGQzNy0zMjQ0YWUxMzE0ZmEiLCJlbWFpbCI6InNlcmdpeUBleGFtcGxlLmNvbSIsImRpc3BsYXlfbmFtZSI6IlNlcmdpeSIsImp0aSI6ImY5YzJkMGI2YTJlODQyNjFhNGFmNmI2YzY4OWMyM2EzIn0.nUj54pFq58UN9e5qOayPFuiwedUDAAZjcvftT27u7j4
-
-### Create project
+### 4. Create project
+# Rider will save projectId automatically.
 POST {{host}}/api/projects
 Content-Type: application/json
 Accept: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJUYXNrTWFuYWdlci5DbGllbnQiLCJpc3MiOiJUYXNrTWFuYWdlci5BcGkiLCJleHAiOjE3ODcwNzc4NjUsImlhdCI6MTc4NzA3Njk2NSwibmJmIjoxNzg3MDc2OTY1LCJzdWIiOiI4YzZhNGViYS1hNzkxLTRmMDAtOGQzNy0zMjQ0YWUxMzE0ZmEiLCJlbWFpbCI6InNlcmdpeUBleGFtcGxlLmNvbSIsImRpc3BsYXlfbmFtZSI6IlNlcmdpeSIsImp0aSI6IjgwZTQ0MWE5YzJhODRkZmM5ZDRhOGExY2UyMWIwMzAyIn0.tp9PcoCVzUd5Ip3xr8I5uhOYZO0G2_FETBfAwNJUU2A
+Authorization: Bearer {{accessToken}}
 
 {
   "name": "Task Manager Development",
   "description": "Backend development project for the Task Manager API."
 }
+
+> {%
+    client.global.set("projectId", response.body.projectId);
+%}
+
+
+### 5. Create task
+# Priority: Low=1, Medium=2, High=3, Critical=4.
+# Rider will save taskId automatically.
+POST {{host}}/api/projects/{{projectId}}/tasks
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "title": "Test task for comments",
+  "description": "Task used to test Task Comments API.",
+  "priority": 2,
+  "dueDateUtc": null
+}
+
+> {%
+    client.global.set("taskId", response.body.taskItemId);
+%}
+
+
+### 6. Add comment
+# Rider will save commentId automatically.
+POST {{host}}/api/projects/{{projectId}}/tasks/{{taskId}}/comments
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "content": "First comment"
+}
+
+> {%
+    client.global.set("commentId", response.body.commentId);
+%}
+
+
+### 7. Get comments
+# Expected: 200 OK and "First comment" in the list.
+GET {{host}}/api/projects/{{projectId}}/tasks/{{taskId}}/comments
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+
+### 8. Edit comment
+# Expected: 200 OK and content = "Updated comment".
+PATCH {{host}}/api/projects/{{projectId}}/tasks/{{taskId}}/comments/{{commentId}}
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "content": "Updated comment"
+}
+
+
+### 9. Get comments after edit
+# Expected: 200 OK and "Updated comment" in the list.
+GET {{host}}/api/projects/{{projectId}}/tasks/{{taskId}}/comments
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+
+### 10. Delete comment
+# Expected: 204 No Content.
+DELETE {{host}}/api/projects/{{projectId}}/tasks/{{taskId}}/comments/{{commentId}}
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+
+### 11. Get comments after delete
+# Expected: 200 OK and the deleted comment is absent.
+GET {{host}}/api/projects/{{projectId}}/tasks/{{taskId}}/comments
+Accept: application/json
+Authorization: Bearer {{accessToken}}
