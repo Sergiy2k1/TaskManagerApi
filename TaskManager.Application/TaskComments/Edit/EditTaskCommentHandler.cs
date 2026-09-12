@@ -42,10 +42,26 @@ public sealed class EditTaskCommentHandler
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        if (command.ProjectId == Guid.Empty || command.TaskItemId == Guid.Empty ||
-            command.CommentId == Guid.Empty)
+        if (command.ProjectId == Guid.Empty)
+        {
             throw new ApplicationValidationException(
-                "Identifiers cannot be empty.");
+                "Project identifier cannot be empty.",
+                nameof(command.ProjectId));
+        }
+
+        if (command.TaskItemId == Guid.Empty)
+        {
+            throw new ApplicationValidationException(
+                "Task identifier cannot be empty.",
+                nameof(command.TaskItemId));
+        }
+
+        if (command.CommentId == Guid.Empty)
+        {
+            throw new ApplicationValidationException(
+                "Comment identifier cannot be empty.",
+                nameof(command.CommentId));
+        }
 
         var project = await _projectRepository.GetByIdAsync(
             command.ProjectId, cancellationToken);

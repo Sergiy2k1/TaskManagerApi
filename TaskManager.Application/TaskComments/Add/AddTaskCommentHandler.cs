@@ -43,6 +43,20 @@ public sealed class AddTaskCommentHandler
     {
         ArgumentNullException.ThrowIfNull(command);
 
+        if (command.ProjectId == Guid.Empty)
+        {
+            throw new ApplicationValidationException(
+                "Project identifier cannot be empty.",
+                nameof(command.ProjectId));
+        }
+
+        if (command.TaskItemId == Guid.Empty)
+        {
+            throw new ApplicationValidationException(
+                "Task identifier cannot be empty.",
+                nameof(command.TaskItemId));
+        }
+
         var project = await GetAccessibleProjectAsync(
             command.ProjectId,
             cancellationToken);
@@ -79,11 +93,6 @@ public sealed class AddTaskCommentHandler
         Guid projectId,
         CancellationToken cancellationToken)
     {
-        if (projectId == Guid.Empty)
-            throw new ApplicationValidationException(
-                "Project identifier cannot be empty.",
-                nameof(projectId));
-
         var project = await _projectRepository.GetByIdAsync(
             projectId,
             cancellationToken);
@@ -104,11 +113,6 @@ public sealed class AddTaskCommentHandler
         Guid projectId,
         CancellationToken cancellationToken)
     {
-        if (taskItemId == Guid.Empty)
-            throw new ApplicationValidationException(
-                "Task identifier cannot be empty.",
-                nameof(taskItemId));
-
         var task = await _taskRepository.GetByIdAsync(
             taskItemId,
             cancellationToken);

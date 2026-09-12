@@ -93,18 +93,21 @@ public sealed class AssignTaskHandler
                 "Task was not found.");
         }
 
-        var assigneeMember =
-            await _projectMemberRepository
-                .GetByProjectAndUserAsync(
-                    project.Id,
-                    command.AssigneeId,
-                    cancellationToken);
-
-        if (assigneeMember is null ||
-            !assigneeMember.IsActive)
+        if (command.AssigneeId != project.OwnerId)
         {
-            throw new ApplicationNotFoundException(
-                "Assignee was not found in the project.");
+            var assigneeMember =
+                await _projectMemberRepository
+                    .GetByProjectAndUserAsync(
+                        project.Id,
+                        command.AssigneeId,
+                        cancellationToken);
+
+            if (assigneeMember is null ||
+                !assigneeMember.IsActive)
+            {
+                throw new ApplicationNotFoundException(
+                    "Assignee was not found in the project.");
+            }
         }
 
         taskItem.Assign(

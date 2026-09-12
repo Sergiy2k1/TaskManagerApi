@@ -74,6 +74,12 @@ public sealed class AddProjectMemberHandler
                 project.Id,
                 cancellationToken);
 
+        if (project.IsArchived)
+        {
+            throw new ApplicationConflictException(
+                "Cannot add members to an archived project.");
+        }
+
         var user =
             await _userRepository.GetByNormalizedEmailAsync(
                 normalizedEmail,
@@ -84,6 +90,12 @@ public sealed class AddProjectMemberHandler
         {
             throw new ApplicationNotFoundException(
                 "User was not found.");
+        }
+
+        if (user.Id == project.OwnerId)
+        {
+            throw new ApplicationConflictException(
+                "Project owner cannot be added as a member.");
         }
 
         var existingMember =

@@ -68,6 +68,12 @@ public sealed class RemoveProjectMemberHandler
                 project.Id,
                 cancellationToken);
 
+        if (project.IsArchived)
+        {
+            throw new ApplicationConflictException(
+                "Cannot remove members from an archived project.");
+        }
+
         if (command.UserId == project.OwnerId)
         {
             throw new ApplicationConflictException(

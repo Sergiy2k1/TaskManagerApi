@@ -32,6 +32,10 @@ public sealed class TaskCommentsController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(TaskCommentResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<TaskCommentResponse>> Add(
         Guid projectId,
         Guid taskItemId,
@@ -54,6 +58,11 @@ public sealed class TaskCommentsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(
+        typeof(IReadOnlyList<TaskCommentResponse>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<TaskCommentResponse>>> GetAll(
         Guid projectId,
         Guid taskItemId,
@@ -75,6 +84,11 @@ public sealed class TaskCommentsController : ControllerBase
     }
 
     [HttpPatch("{commentId:guid}")]
+    [ProducesResponseType(typeof(TaskCommentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<TaskCommentResponse>> Edit(
         Guid projectId,
         Guid taskItemId,
@@ -100,6 +114,11 @@ public sealed class TaskCommentsController : ControllerBase
     }
 
     [HttpDelete("{commentId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(
         Guid projectId,
         Guid taskItemId,

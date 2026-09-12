@@ -76,6 +76,12 @@ public sealed class ChangeProjectMemberRoleHandler
                 project.Id,
                 cancellationToken);
 
+        if (project.IsArchived)
+        {
+            throw new ApplicationConflictException(
+                "Cannot change member roles in an archived project.");
+        }
+
         if (command.UserId == project.OwnerId)
         {
             throw new ApplicationConflictException(
