@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddSingleton<IAccessTokenGenerator, JwtAccessTokenGenerator>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<ITaskItemRepository, TaskItemRepository>();
+        services.AddScoped<ITaskCommentRepository, TaskCommentRepository>();
         
         return services;
     }

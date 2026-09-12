@@ -19,6 +19,10 @@ using TaskManager.Application.Tasks.GetById;
 using TaskManager.Application.Tasks.GetByProject;
 using TaskManager.Application.Tasks.Unassign;
 using TaskManager.Application.Tasks.Update;
+using TaskManager.Application.TaskComments.Add;
+using TaskManager.Application.TaskComments.Delete;
+using TaskManager.Application.TaskComments.Edit;
+using TaskManager.Application.TaskComments.GetAll;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
 
@@ -122,6 +126,24 @@ public static class DependencyInjection
                 ChangeTaskStatusCommand,
                 ChangeTaskStatusResult>,
             ChangeTaskStatusHandler>();
+
+        services.AddScoped<
+            ICommandHandler<AddTaskCommentCommand, AddTaskCommentResult>,
+            AddTaskCommentHandler>();
+
+        services.AddScoped<
+            IQueryHandler<
+                GetTaskCommentsQuery,
+                IReadOnlyList<GetTaskCommentsResult>>,
+            GetTaskCommentsHandler>();
+
+        services.AddScoped<
+            ICommandHandler<EditTaskCommentCommand, EditTaskCommentResult>,
+            EditTaskCommentHandler>();
+
+        services.AddScoped<
+            ICommandHandler<DeleteTaskCommentCommand, DeleteTaskCommentResult>,
+            DeleteTaskCommentHandler>();
 
         return services;
     }
