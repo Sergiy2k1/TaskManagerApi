@@ -3,12 +3,14 @@ using TaskManager.Application.Abstractions.Authorization;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Projects.AddMember;
+using TaskManager.Application.Projects.Archive;
 using TaskManager.Application.Projects.ChangeMemberRole;
 using TaskManager.Application.Projects.Create;
 using TaskManager.Application.Projects.GetAll;
 using TaskManager.Application.Projects.GetById;
 using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Application.Projects.RemoveMember;
+using TaskManager.Application.Projects.Restore;
 using TaskManager.Application.Projects.Update;
 using TaskManager.Application.Tasks.Assign;
 using TaskManager.Application.Tasks.ChangeStatus;
@@ -50,6 +52,14 @@ public static class DependencyInjection
         services.AddScoped<
             ICommandHandler<UpdateProjectCommand, UpdateProjectResult>,
             UpdateProjectHandler>();
+
+        services.AddScoped<
+            ICommandHandler<ArchiveProjectCommand, ArchiveProjectResult>,
+            ArchiveProjectHandler>();
+
+        services.AddScoped<
+            ICommandHandler<RestoreProjectCommand, RestoreProjectResult>,
+            RestoreProjectHandler>();
 
         services.AddScoped<
             ICommandHandler<AddProjectMemberCommand, AddProjectMemberResult>,
