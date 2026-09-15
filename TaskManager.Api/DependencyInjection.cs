@@ -4,6 +4,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using TaskManager.Api.Authentication;
 using TaskManager.Api.ErrorHandling;
 using TaskManager.Api.Health;
+using TaskManager.Api.Observability;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Infrastructure.Security;
 
@@ -26,6 +27,9 @@ public static class DependencyInjection
                 "postgresql",
                 failureStatus: HealthStatus.Unhealthy,
                 tags: ["ready"]);
+
+        services.AddTaskManagerOpenTelemetry(
+            configuration);
 
         AddAuthentication(services, configuration);
 

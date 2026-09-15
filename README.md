@@ -20,6 +20,7 @@ Implemented today:
 - ProblemDetails-based error responses;
 - separate liveness and PostgreSQL-backed readiness probes;
 - structured request logging with correlation and W3C trace identifiers;
+- OpenTelemetry HTTP tracing, ASP.NET Core metrics, runtime metrics, and optional OTLP export;
 - EF Core migrations;
 - PostgreSQL persistence;
 - Testcontainers-based integration tests;
@@ -31,7 +32,7 @@ Implemented today:
 - task filtering, search, and deterministic sorting;
 - nullable reference types, analyzers, code-style checks, and warnings as errors.
 
-Production-readiness work is intentionally incremental. API-level integration tests, pagination/filtering, optimistic concurrency, health checks, observability, and rate limiting are part of the next roadmap stages and are **not presented here as already implemented**.
+Production-readiness work is intentionally incremental. API-level integration tests, bounded querying, optimistic concurrency, health checks, consistency handling, structured logging, and OpenTelemetry instrumentation are implemented. Rate limiting and the final security/performance/design review remain roadmap work.
 
 ---
 
@@ -51,6 +52,7 @@ Production-readiness work is intentionally incremental. API-level integration te
 - **GitHub Actions**
 - **Microsoft.Testing.Platform**
 - **OpenAPI**
+- **OpenTelemetry / OTLP**
 
 ---
 
@@ -458,7 +460,8 @@ Current coverage verifies:
 - domain validation mapped to `400 Bad Request`;
 - ProblemDetails status/title/detail/instance/trace-id semantics for representative 400/403/404/409 responses;
 - concurrent duplicate registration resolves to one successful create and one `409 Conflict` rather than a `500`;
-- request correlation is returned to clients and preserved when a valid `X-Correlation-ID` is supplied.
+- request correlation is returned to clients and preserved when a valid `X-Correlation-ID` is supplied;
+- W3C `traceparent` propagation is preserved into ProblemDetails trace identifiers.
 
 These scenarios execute through HTTP, JWT authentication, authorization policies, controllers, application handlers, EF Core, and PostgreSQL.
 
@@ -935,7 +938,33 @@ The correlation id is returned in the `X-Correlation-ID` response header. Proble
 
 Request-completion logs include method, path, status code, elapsed time, correlation id, and trace id as structured properties. Query strings, request bodies, authorization headers, JWTs, passwords, and connection strings are deliberately not logged. Successful health probes are logged only at Debug level to avoid high-volume probe noise.
 
-This provides a useful correlation baseline without pretending that application logs are a full observability stack. Distributed trace export and metrics remain a separate OpenTelemetry stage.
+This provides a useful correlation baseline without coupling the application to a specific log aggregation product.
+
+---
+
+## OpenTelemetry
+
+The API is instrumented with OpenTelemetry for inbound HTTP traces, ASP.NET Core request metrics, and .NET runtime metrics.
+
+The default setup intentionally has no external telemetry backend. This keeps local development and the test suite self-contained. When `OTEL_EXPORTER_OTLP_ENDPOINT` is configured, traces and metrics are exported over OTLP to an OpenTelemetry Collector or another OTLP-compatible backend.
+
+Example for a locally running collector:
+
+```text
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+```
+
+For Docker Compose, an exporter running on the host can commonly be reached with:
+
+```text
+OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:4317
+```
+
+The OpenTelemetry resource uses the configured service name `TaskManager.Api`. ASP.NET Core instrumentation records server request spans and request metrics; runtime instrumentation adds process/runtime signals such as GC and runtime activity. Health endpoints are excluded from tracing to avoid high-volume probe noise.
+
+W3C trace context is preserved. If an upstream caller supplies a valid `traceparent`, the API continues that trace, and the same trace id is exposed in ProblemDetails and structured logs.
+
+The repository deliberately does not bundle Jaeger, Grafana, Prometheus, or an OpenTelemetry Collector into the default Compose stack. The application is export-ready without making an observability backend a mandatory local dependency.
 
 ---
 
@@ -943,13 +972,12 @@ This provides a useful correlation baseline without pretending that application 
 
 The next production-oriented stages are intentionally incremental:
 
-1. OpenTelemetry traces and basic metrics;
-2. ASP.NET Core rate limiting, especially for login/register;
-3. authentication/session improvements if justified;
-4. API/validation/security review;
-5. PostgreSQL and EF Core performance review;
-6. handler-dispatch refactoring only if constructor/registration growth justifies it;
-7. short Architecture Decision Records under `docs/adr`.
+1. ASP.NET Core rate limiting, especially for login/register;
+2. authentication/session improvements if justified;
+3. API/validation/security review;
+4. PostgreSQL and EF Core performance review;
+5. handler-dispatch refactoring only if constructor/registration growth justifies it;
+6. short Architecture Decision Records under `docs/adr`.
 
 ---
 

@@ -46,6 +46,7 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE:-TaskManager.Client}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:-VGFza01hbmFnZXItbG9jYWwtZGV2ZWxvcG1lbnQtc2lnbmluZy1rZXktMjAyNg==}
       Jwt__AccessTokenLifetimeMinutes: ${JWT_ACCESS_TOKEN_LIFETIME_MINUTES:-15}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
       - "${API_PORT:-5135}:8080"
     depends_on:
