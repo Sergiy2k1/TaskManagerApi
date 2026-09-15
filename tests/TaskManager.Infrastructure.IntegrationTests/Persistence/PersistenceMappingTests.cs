@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TaskManager.Application.Common.Exceptions;
 using TaskManager.Domain.Entities;
 using TaskManager.Domain.Enums;
 using TaskManager.Infrastructure.IntegrationTests.Database;
@@ -171,7 +172,7 @@ public sealed class PersistenceMappingTests
     }
 
     [Fact]
-    public async Task SaveChangesWithDuplicateProjectMemberThrowsDbUpdateException()
+    public async Task SaveChangesWithDuplicateProjectMemberThrowsConflictException()
     {
         var cancellationToken =
             TestContext.Current.CancellationToken;
@@ -220,8 +221,16 @@ public sealed class PersistenceMappingTests
         dbContext.ProjectMembers.Add(
             duplicateMember);
 
-        await Assert.ThrowsAsync<DbUpdateException>(
-            () => dbContext.SaveChangesAsync(
-                cancellationToken));
+        var exception =
+            await Assert.ThrowsAsync<ApplicationConflictException>(
+                () => dbContext.SaveChangesAsync(
+                    cancellationToken));
+
+        Assert.Equal(
+            "User is already an active project member.",
+            exception.Message);
+
+        Assert.IsType<DbUpdateException>(
+            exception.InnerException);
     }
 }
