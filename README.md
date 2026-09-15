@@ -443,14 +443,22 @@ Current coverage verifies:
 - register → login → authenticated profile;
 - project creation and persisted read-back;
 - project archive → persisted archived state → restore;
+- member add → role promotion → manager-driven member removal;
+- regular-member member-management rejection with `403 Forbidden`;
+- removed-member and outsider anti-enumeration behavior with `404 Not Found`;
 - task creation and persisted read-back;
-- the full valid task status path from `Backlog` to `Completed`, including persisted completion state.
+- task assignment and unassignment with persisted assignee state;
+- the full valid task status path from `Backlog` to `Completed`, including persisted completion state;
+- comment create → author edit → project-owner delete → soft-delete exclusion from list results;
+- archived-project mutation rejection with `409 Conflict`;
+- domain validation mapped to `400 Bad Request`;
+- ProblemDetails status/title/detail/instance/trace-id semantics for representative 400/403/404/409 responses.
 
-These scenarios execute through HTTP, JWT authentication, controllers, application handlers, EF Core, and PostgreSQL.
+These scenarios execute through HTTP, JWT authentication, authorization policies, controllers, application handlers, EF Core, and PostgreSQL.
 
 The fixture applies real EF Core migrations before the test server is created and provides a database reset hook for isolated scenario tests.
 
-Member/role, assignment, comment, authorization-error, validation, not-found, and conflict scenarios remain for the next API-test iteration.
+Additional edge-case API scenarios can be added as regressions are discovered, but the main authentication, collaboration, authorization, lifecycle, persistence, and error-semantics paths now have HTTP-level coverage.
 
 ---
 
@@ -823,19 +831,18 @@ The project intentionally does not add microservices, Kafka, Redis, Kubernetes, 
 
 The next production-oriented stages are intentionally incremental:
 
-1. expand API integration coverage for project/member/task/comment/error scenarios;
-2. pagination, filtering, searching, and sorting for list endpoints;
-3. optimistic concurrency for project/task updates;
-4. consistency and transaction review;
-5. liveness/readiness health checks;
-6. structured logging and trace correlation;
-7. OpenTelemetry traces and basic metrics;
-8. ASP.NET Core rate limiting, especially for login/register;
-9. authentication/session improvements if justified;
-10. API/validation/security review;
-11. PostgreSQL and EF Core performance review;
-12. handler-dispatch refactoring only if constructor/registration growth justifies it;
-13. short Architecture Decision Records under `docs/adr`.
+1. pagination, filtering, searching, and sorting for list endpoints;
+2. optimistic concurrency for project/task updates;
+3. consistency and transaction review;
+4. liveness/readiness health checks;
+5. structured logging and trace correlation;
+6. OpenTelemetry traces and basic metrics;
+7. ASP.NET Core rate limiting, especially for login/register;
+8. authentication/session improvements if justified;
+9. API/validation/security review;
+10. PostgreSQL and EF Core performance review;
+11. handler-dispatch refactoring only if constructor/registration growth justifies it;
+12. short Architecture Decision Records under `docs/adr`.
 
 ---
 
