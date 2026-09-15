@@ -116,8 +116,7 @@ public sealed class ProjectsController : ControllerBase
     {
         var command = new CreateProjectCommand(
             Name: request.Name,
-            Description: request.Description,
-            ExpectedVersion: request.Version);
+            Description: request.Description);
 
         var result =
             await _createProjectHandler.HandleAsync(
@@ -153,7 +152,8 @@ public sealed class ProjectsController : ControllerBase
         var command = new UpdateProjectCommand(
             ProjectId: projectId,
             Name: request.Name,
-            Description: request.Description);
+            Description: request.Description,
+            ExpectedVersion: request.Version);
 
         var result =
             await _updateProjectHandler.HandleAsync(
