@@ -18,6 +18,7 @@ Implemented today:
 - task comments with soft delete;
 - resource-level authorization;
 - ProblemDetails-based error responses;
+- separate liveness and PostgreSQL-backed readiness probes;
 - EF Core migrations;
 - PostgreSQL persistence;
 - Testcontainers-based integration tests;
@@ -722,6 +723,8 @@ It demonstrates a working flow and automatically carries generated ids/tokens be
 | Method | Route | Description |
 |---|---|---|
 | GET | `/api/ping` | Basic API ping |
+| GET | `/health/live` | Process liveness probe |
+| GET | `/health/ready` | Readiness probe with PostgreSQL connectivity |
 | POST | `/api/auth/register` | Register user |
 | POST | `/api/auth/login` | Login and receive access token |
 | GET | `/api/profile` | Current authenticated user |
@@ -886,19 +889,49 @@ An explicit transaction would become justified if one use case needed multiple `
 
 ---
 
+## Health checks
+
+The API exposes separate probes for process health and dependency readiness:
+
+- `GET /health/live` verifies that the ASP.NET Core process is alive and deliberately runs no dependency checks;
+- `GET /health/ready` runs the tagged PostgreSQL connectivity check and becomes unhealthy when the application cannot reach its database.
+
+This distinction prevents a temporary database outage from incorrectly telling an orchestrator that the process itself is dead, while still allowing traffic to be withheld until the application is ready to serve database-backed requests.
+
+Health responses are intentionally small and do not expose exception messages, connection strings, or other sensitive infrastructure details. They contain the overall status, total duration, and per-check status/duration only.
+
+A healthy readiness response has the shape:
+
+```json
+{
+  "status": "Healthy",
+  "totalDurationMs": 2.41,
+  "checks": [
+    {
+      "name": "postgresql",
+      "status": "Healthy",
+      "durationMs": 2.12
+    }
+  ]
+}
+```
+
+Deployment platforms can use `/health/live` for liveness and `/health/ready` for readiness without requiring authentication.
+
+---
+
 ## Roadmap
 
 The next production-oriented stages are intentionally incremental:
 
-1. liveness/readiness health checks;
-2. structured logging and trace correlation;
-3. OpenTelemetry traces and basic metrics;
-4. ASP.NET Core rate limiting, especially for login/register;
-5. authentication/session improvements if justified;
-6. API/validation/security review;
-7. PostgreSQL and EF Core performance review;
-8. handler-dispatch refactoring only if constructor/registration growth justifies it;
-9. short Architecture Decision Records under `docs/adr`.
+1. structured logging and trace correlation;
+2. OpenTelemetry traces and basic metrics;
+3. ASP.NET Core rate limiting, especially for login/register;
+4. authentication/session improvements if justified;
+5. API/validation/security review;
+6. PostgreSQL and EF Core performance review;
+7. handler-dispatch refactoring only if constructor/registration growth justifies it;
+8. short Architecture Decision Records under `docs/adr`.
 
 ---
 

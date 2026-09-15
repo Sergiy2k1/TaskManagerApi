@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using TaskManager.Api.Authentication;
 using TaskManager.Api.ErrorHandling;
+using TaskManager.Api.Health;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Infrastructure.Security;
 
@@ -17,6 +19,13 @@ public static class DependencyInjection
         services.AddOpenApi();
         services.AddProblemDetails();
         services.AddExceptionHandler<GlobalExceptionHandler>();
+
+        services
+            .AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>(
+                "postgresql",
+                failureStatus: HealthStatus.Unhealthy,
+                tags: ["ready"]);
 
         AddAuthentication(services, configuration);
 
