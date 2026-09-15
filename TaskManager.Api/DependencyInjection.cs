@@ -18,7 +18,23 @@ public static class DependencyInjection
     {
         services.AddControllers();
         services.AddOpenApi();
-        services.AddProblemDetails();
+        services.AddProblemDetails(
+            options =>
+            {
+                options.CustomizeProblemDetails =
+                    context =>
+                    {
+                        context.ProblemDetails
+                            .Extensions["traceId"] =
+                            RequestCorrelation.GetTraceId(
+                                context.HttpContext);
+
+                        context.ProblemDetails
+                            .Extensions["correlationId"] =
+                            RequestCorrelation.GetCorrelationId(
+                                context.HttpContext);
+                    };
+            });
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
         services
