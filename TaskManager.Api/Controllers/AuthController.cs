@@ -34,6 +34,10 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType(
         typeof(RegisterResponse),
         StatusCodes.Status201Created)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status409Conflict)]
     public async Task<ActionResult<RegisterResponse>> Register(
         RegisterRequest request,
         CancellationToken cancellationToken)

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Domain.Entities;
@@ -9,6 +10,12 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
 {
     private const string ConcurrencyConflictMessage =
         "The resource was modified by another request. Reload the resource and retry.";
+
+    private const string UserEmailConstraint =
+        "ux_users_normalized_email";
+
+    private const string ProjectMemberConstraint =
+        "ux_project_members_project_id_user_id";
 
     public AppDbContext(
         DbContextOptions<AppDbContext> options)
@@ -40,6 +47,18 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
                 ConcurrencyConflictMessage,
                 exception);
         }
+        catch (DbUpdateException exception)
+        {
+            var conflict =
+                MapDatabaseConflict(exception);
+
+            if (conflict is not null)
+            {
+                throw conflict;
+            }
+
+            throw;
+        }
     }
 
     public override async Task<int> SaveChangesAsync(
@@ -58,6 +77,18 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
                 ConcurrencyConflictMessage,
                 exception);
         }
+        catch (DbUpdateException exception)
+        {
+            var conflict =
+                MapDatabaseConflict(exception);
+
+            if (conflict is not null)
+            {
+                throw conflict;
+            }
+
+            throw;
+        }
     }
 
     protected override void OnModelCreating(
@@ -67,6 +98,37 @@ public sealed class AppDbContext : DbContext, IUnitOfWork
 
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(AppDbContext).Assembly);
+    }
+
+    private static ApplicationConflictException?
+        MapDatabaseConflict(
+            DbUpdateException exception)
+    {
+        if (exception.InnerException
+                is not PostgresException postgresException ||
+            postgresException.SqlState !=
+                PostgresErrorCodes.UniqueViolation)
+        {
+            return null;
+        }
+
+        var message =
+            postgresException.ConstraintName switch
+            {
+                UserEmailConstraint =>
+                    "A user with this email already exists.",
+
+                ProjectMemberConstraint =>
+                    "User is already an active project member.",
+
+                _ => null
+            };
+
+        return message is null
+            ? null
+            : new ApplicationConflictException(
+                message,
+                exception);
     }
 
     private void PrepareConcurrencyTokens()

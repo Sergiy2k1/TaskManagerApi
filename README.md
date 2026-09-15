@@ -454,7 +454,8 @@ Current coverage verifies:
 - comment create → author edit → project-owner delete → soft-delete exclusion from list results;
 - archived-project mutation rejection with `409 Conflict`;
 - domain validation mapped to `400 Bad Request`;
-- ProblemDetails status/title/detail/instance/trace-id semantics for representative 400/403/404/409 responses.
+- ProblemDetails status/title/detail/instance/trace-id semantics for representative 400/403/404/409 responses;
+- concurrent duplicate registration resolves to one successful create and one `409 Conflict` rather than a `500`.
 
 These scenarios execute through HTTP, JWT authentication, authorization policies, controllers, application handlers, EF Core, and PostgreSQL.
 
@@ -871,20 +872,33 @@ A stale update returns `409 Conflict` and the client should reload before retryi
 
 ---
 
+## Consistency and transaction boundaries
+
+Consistency checks that improve client feedback are intentionally backed by database constraints rather than trusted as the final authority.
+
+Registration is a concrete example: the application first checks whether a normalized email already exists, but two requests can both pass that pre-check. The unique PostgreSQL index remains the final boundary. A `23505 unique_violation` for the known email or project-membership constraints is translated by the Infrastructure layer into `ApplicationConflictException`, so the API returns `409 Conflict` instead of leaking a persistence exception as `500`.
+
+The same rule applies to project membership: the application checks current membership state, while the unique `(project_id, user_id)` constraint protects concurrent inserts.
+
+Transaction review also confirmed that explicit transactions are not needed for the current single-`SaveChanges` use cases. EF Core wraps the writes produced by one `SaveChanges` call in a transaction. For example, project creation inserts both the project and its owner membership in one unit of work. An integration test intentionally makes a later insert in the same save fail and verifies that the earlier project insert is rolled back as well.
+
+An explicit transaction would become justified if one use case needed multiple `SaveChanges` calls to succeed or fail together. Coordination with an external system would require a different reliability pattern rather than holding a database transaction open around network calls.
+
+---
+
 ## Roadmap
 
 The next production-oriented stages are intentionally incremental:
 
-1. consistency and transaction review;
-2. liveness/readiness health checks;
-3. structured logging and trace correlation;
-4. OpenTelemetry traces and basic metrics;
-5. ASP.NET Core rate limiting, especially for login/register;
-6. authentication/session improvements if justified;
-7. API/validation/security review;
-8. PostgreSQL and EF Core performance review;
-9. handler-dispatch refactoring only if constructor/registration growth justifies it;
-10. short Architecture Decision Records under `docs/adr`.
+1. liveness/readiness health checks;
+2. structured logging and trace correlation;
+3. OpenTelemetry traces and basic metrics;
+4. ASP.NET Core rate limiting, especially for login/register;
+5. authentication/session improvements if justified;
+6. API/validation/security review;
+7. PostgreSQL and EF Core performance review;
+8. handler-dispatch refactoring only if constructor/registration growth justifies it;
+9. short Architecture Decision Records under `docs/adr`.
 
 ---
 
