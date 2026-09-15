@@ -373,8 +373,23 @@ public sealed class ProjectTaskFlowTests
             persistedTask.CompletedAtUtc);
 
         Assert.Equal(
-            lastResponse.CompletedAtUtc,
-            persistedTask.CompletedAtUtc);
+            TruncateToMicroseconds(
+                lastResponse.CompletedAtUtc.Value),
+            persistedTask.CompletedAtUtc.Value);
+    }
+
+    private static DateTimeOffset TruncateToMicroseconds(
+        DateTimeOffset value)
+    {
+        const long ticksPerMicrosecond = 10;
+
+        var truncatedTicks =
+            value.Ticks -
+            value.Ticks % ticksPerMicrosecond;
+
+        return new DateTimeOffset(
+            truncatedTicks,
+            value.Offset);
     }
 
     private async Task<HttpClient>
