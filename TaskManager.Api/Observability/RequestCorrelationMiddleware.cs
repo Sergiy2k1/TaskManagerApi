@@ -34,6 +34,10 @@ public sealed partial class RequestCorrelationMiddleware
             RequestCorrelation.GetTraceId(
                 context);
 
+        context.Items[
+            RequestCorrelation.TraceIdHttpContextItemKey] =
+            traceId;
+
         var startedAt =
             Stopwatch.GetTimestamp();
 
