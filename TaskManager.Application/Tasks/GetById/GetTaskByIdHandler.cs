@@ -82,6 +82,7 @@ public sealed class GetTaskByIdHandler
             DueDateUtc: taskItem.DueDateUtc,
             CreatedAtUtc: taskItem.CreatedAtUtc,
             UpdatedAtUtc: taskItem.UpdatedAtUtc,
-            CompletedAtUtc: taskItem.CompletedAtUtc);
+            CompletedAtUtc: taskItem.CompletedAtUtc,
+            Version: taskItem.Version);
     }
 }

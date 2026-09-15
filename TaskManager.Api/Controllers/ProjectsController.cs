@@ -116,7 +116,8 @@ public sealed class ProjectsController : ControllerBase
     {
         var command = new CreateProjectCommand(
             Name: request.Name,
-            Description: request.Description);
+            Description: request.Description,
+            ExpectedVersion: request.Version);
 
         var result =
             await _createProjectHandler.HandleAsync(
@@ -167,7 +168,8 @@ public sealed class ProjectsController : ControllerBase
             IsArchived: result.IsArchived,
             CreatedAtUtc: result.CreatedAtUtc,
             UpdatedAtUtc: result.UpdatedAtUtc,
-            ArchivedAtUtc: result.ArchivedAtUtc);
+            ArchivedAtUtc: result.ArchivedAtUtc,
+            Version: result.Version);
 
         return Ok(response);
     }
@@ -397,7 +399,8 @@ public sealed class ProjectsController : ControllerBase
             IsArchived: result.IsArchived,
             CreatedAtUtc: result.CreatedAtUtc,
             UpdatedAtUtc: result.UpdatedAtUtc,
-            ArchivedAtUtc: result.ArchivedAtUtc);
+            ArchivedAtUtc: result.ArchivedAtUtc,
+            Version: result.Version);
 
         return Ok(response);
     }

@@ -856,21 +856,35 @@ The remaining collection endpoints also use bounded database-side pagination: `G
 
 ---
 
+## Optimistic concurrency
+
+`Project` and `TaskItem` use an explicit numeric `Version` concurrency token stored in PostgreSQL.
+
+A client reads the resource version and sends that version back when updating the editable project/task representation. The application rejects an already-stale version before applying domain changes, while EF Core also includes the tracked original version in the database update condition. Successful writes increment the version.
+
+This provides two layers of protection:
+
+- disconnected-client stale-edit detection;
+- database-level detection when two requests race after reading the same version.
+
+A stale update returns `409 Conflict` and the client should reload before retrying. EF Core `DbUpdateConcurrencyException` is translated to application conflict semantics at the persistence boundary.
+
+---
+
 ## Roadmap
 
 The next production-oriented stages are intentionally incremental:
 
-1. optimistic concurrency for project/task updates;
-2. consistency and transaction review;
-3. liveness/readiness health checks;
-4. structured logging and trace correlation;
-5. OpenTelemetry traces and basic metrics;
-6. ASP.NET Core rate limiting, especially for login/register;
-7. authentication/session improvements if justified;
-8. API/validation/security review;
-9. PostgreSQL and EF Core performance review;
-10. handler-dispatch refactoring only if constructor/registration growth justifies it;
-11. short Architecture Decision Records under `docs/adr`.
+1. consistency and transaction review;
+2. liveness/readiness health checks;
+3. structured logging and trace correlation;
+4. OpenTelemetry traces and basic metrics;
+5. ASP.NET Core rate limiting, especially for login/register;
+6. authentication/session improvements if justified;
+7. API/validation/security review;
+8. PostgreSQL and EF Core performance review;
+9. handler-dispatch refactoring only if constructor/registration growth justifies it;
+10. short Architecture Decision Records under `docs/adr`.
 
 ---
 

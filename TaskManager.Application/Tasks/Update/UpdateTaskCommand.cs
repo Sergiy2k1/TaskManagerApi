@@ -9,5 +9,6 @@ public sealed record UpdateTaskCommand(
     string Title,
     string? Description,
     TaskPriority Priority,
-    DateTimeOffset? DueDateUtc)
+    DateTimeOffset? DueDateUtc,
+    long ExpectedVersion = 1)
     : ICommand<UpdateTaskResult>;

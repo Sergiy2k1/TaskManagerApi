@@ -14,4 +14,5 @@ public sealed record UpdateTaskResult(
     DateTimeOffset? DueDateUtc,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? UpdatedAtUtc,
-    DateTimeOffset? CompletedAtUtc);
+    DateTimeOffset? CompletedAtUtc,
+    long Version);

@@ -1,4 +1,4 @@
-﻿namespace TaskManager.Api.Contracts.Projects;
+namespace TaskManager.Api.Contracts.Projects;
 
 public sealed record GetProjectByIdResponse(
     Guid ProjectId,
@@ -8,4 +8,5 @@ public sealed record GetProjectByIdResponse(
     bool IsArchived,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? UpdatedAtUtc,
-    DateTimeOffset? ArchivedAtUtc);
+    DateTimeOffset? ArchivedAtUtc,
+    long Version);

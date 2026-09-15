@@ -56,6 +56,7 @@ public sealed class GetProjectByIdHandler
             IsArchived: project.IsArchived,
             CreatedAtUtc: project.CreatedAtUtc,
             UpdatedAtUtc: project.UpdatedAtUtc,
-            ArchivedAtUtc: project.ArchivedAtUtc);
+            ArchivedAtUtc: project.ArchivedAtUtc,
+            Version: project.Version);
     }
 }

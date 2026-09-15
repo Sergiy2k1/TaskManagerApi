@@ -1,4 +1,4 @@
-﻿namespace TaskManager.Application.Projects.GetById;
+namespace TaskManager.Application.Projects.GetById;
 
 public sealed record GetProjectByIdResult(
     Guid ProjectId,
@@ -8,4 +8,5 @@ public sealed record GetProjectByIdResult(
     bool IsArchived,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? UpdatedAtUtc,
-    DateTimeOffset? ArchivedAtUtc);
+    DateTimeOffset? ArchivedAtUtc,
+    long Version);

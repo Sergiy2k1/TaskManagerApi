@@ -208,7 +208,8 @@ public sealed class TasksController : ControllerBase
                 Title: request.Title,
                 Description: request.Description,
                 Priority: request.Priority,
-                DueDateUtc: request.DueDateUtc);
+                DueDateUtc: request.DueDateUtc,
+                ExpectedVersion: request.Version);
 
         var result =
             await _updateTaskHandler.HandleAsync(
@@ -228,7 +229,8 @@ public sealed class TasksController : ControllerBase
                 DueDateUtc: result.DueDateUtc,
                 CreatedAtUtc: result.CreatedAtUtc,
                 UpdatedAtUtc: result.UpdatedAtUtc,
-                CompletedAtUtc: result.CompletedAtUtc);
+                CompletedAtUtc: result.CompletedAtUtc,
+                Version: result.Version);
 
         return Ok(response);
     }
@@ -370,7 +372,8 @@ public sealed class TasksController : ControllerBase
                 DueDateUtc: result.DueDateUtc,
                 CreatedAtUtc: result.CreatedAtUtc,
                 UpdatedAtUtc: result.UpdatedAtUtc,
-                CompletedAtUtc: result.CompletedAtUtc);
+                CompletedAtUtc: result.CompletedAtUtc,
+                Version: result.Version);
 
         return Ok(response);
     }

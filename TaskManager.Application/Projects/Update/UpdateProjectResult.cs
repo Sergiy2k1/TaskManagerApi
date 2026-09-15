@@ -8,4 +8,5 @@ public sealed record UpdateProjectResult(
     bool IsArchived,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? UpdatedAtUtc,
-    DateTimeOffset? ArchivedAtUtc);
+    DateTimeOffset? ArchivedAtUtc,
+    long Version);

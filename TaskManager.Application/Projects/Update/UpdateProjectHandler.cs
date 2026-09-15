@@ -43,6 +43,13 @@ public sealed class UpdateProjectHandler
                 nameof(command.ProjectId));
         }
 
+        if (command.ExpectedVersion < 1)
+        {
+            throw new ApplicationValidationException(
+                "Project version must be greater than or equal to 1.",
+                nameof(command.ExpectedVersion));
+        }
+
         var project =
             await _projectRepository.GetByIdForUpdateAsync(
                 command.ProjectId,
@@ -71,6 +78,12 @@ public sealed class UpdateProjectHandler
                 "Archived project cannot be updated.");
         }
 
+        if (project.Version != command.ExpectedVersion)
+        {
+            throw new ApplicationConflictException(
+                "Project was modified since it was loaded. Reload the project and retry.");
+        }
+
         var changedAtUtc =
             _clock.UtcNow;
 
@@ -93,6 +106,7 @@ public sealed class UpdateProjectHandler
             IsArchived: project.IsArchived,
             CreatedAtUtc: project.CreatedAtUtc,
             UpdatedAtUtc: project.UpdatedAtUtc,
-            ArchivedAtUtc: project.ArchivedAtUtc);
+            ArchivedAtUtc: project.ArchivedAtUtc,
+            Version: project.Version);
     }
 }

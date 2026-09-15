@@ -49,6 +49,13 @@ public sealed class UpdateTaskHandler
                 nameof(command.TaskItemId));
         }
 
+        if (command.ExpectedVersion < 1)
+        {
+            throw new ApplicationValidationException(
+                "Task version must be greater than or equal to 1.",
+                nameof(command.ExpectedVersion));
+        }
+
         if (!Enum.IsDefined(command.Priority))
         {
             throw new ApplicationValidationException(
@@ -90,6 +97,12 @@ public sealed class UpdateTaskHandler
                 "Task was not found.");
         }
 
+        if (taskItem.Version != command.ExpectedVersion)
+        {
+            throw new ApplicationConflictException(
+                "Task was modified since it was loaded. Reload the task and retry.");
+        }
+
         var changedAtUtc =
             _clock.UtcNow;
 
@@ -124,6 +137,7 @@ public sealed class UpdateTaskHandler
             DueDateUtc: taskItem.DueDateUtc,
             CreatedAtUtc: taskItem.CreatedAtUtc,
             UpdatedAtUtc: taskItem.UpdatedAtUtc,
-            CompletedAtUtc: taskItem.CompletedAtUtc);
+            CompletedAtUtc: taskItem.CompletedAtUtc,
+            Version: taskItem.Version);
     }
 }

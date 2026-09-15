@@ -6,4 +6,5 @@ public sealed record UpdateTaskRequest(
     string Title,
     string? Description,
     TaskPriority Priority,
-    DateTimeOffset? DueDateUtc);
+    DateTimeOffset? DueDateUtc,
+    long Version);
