@@ -46,6 +46,12 @@ public sealed class ProjectConfiguration
         builder.Property(project => project.ArchivedAtUtc)
             .HasColumnName("archived_at_utc");
 
+        builder.Property(project => project.Version)
+            .HasColumnName("version")
+            .HasDefaultValue(1L)
+            .IsConcurrencyToken()
+            .IsRequired();
+
         builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(project => project.OwnerId)

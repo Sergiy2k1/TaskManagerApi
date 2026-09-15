@@ -24,6 +24,8 @@ public sealed class Project
 
     public DateTimeOffset? ArchivedAtUtc { get; private set; }
 
+    public long Version { get; private set; } = 1;
+
     private Project()
     {
     }

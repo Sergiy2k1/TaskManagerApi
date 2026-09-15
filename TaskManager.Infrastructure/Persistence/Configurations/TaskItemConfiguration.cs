@@ -64,6 +64,12 @@ public sealed class TaskItemConfiguration
         builder.Property(task => task.CompletedAtUtc)
             .HasColumnName("completed_at_utc");
 
+        builder.Property(task => task.Version)
+            .HasColumnName("version")
+            .HasDefaultValue(1L)
+            .IsConcurrencyToken()
+            .IsRequired();
+
         builder.HasOne<Project>()
             .WithMany()
             .HasForeignKey(task => task.ProjectId)

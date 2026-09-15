@@ -33,6 +33,8 @@ public sealed class TaskItem
 
     public DateTimeOffset? CompletedAtUtc { get; private set; }
 
+    public long Version { get; private set; } = 1;
+
     private TaskItem()
     {
     }
