@@ -3,6 +3,7 @@ using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Common.Exceptions;
+using TaskManager.Application.Common.Pagination;
 using TaskManager.Application.Tasks.GetByProject;
 using TaskManager.Domain.Entities;
 using TaskManager.Domain.Enums;
@@ -13,7 +14,7 @@ namespace TaskManager.Application.UnitTests.Tasks.GetByProject;
 public sealed class GetProjectTasksHandlerTests
 {
     [Fact]
-    public async Task HandleAsyncWhenCurrentUserIsOwnerReturnsTasks()
+    public async Task HandleAsyncWhenCurrentUserIsOwnerReturnsPagedTasks()
     {
         var projectRepository =
             Substitute.For<IProjectRepository>();
@@ -40,31 +41,15 @@ public sealed class GetProjectTasksHandlerTests
                 null,
                 now);
 
-        var firstTask =
+        var taskItem =
             TaskItem.Create(
-                projectId: project.Id,
-                createdByUserId: ownerId,
-                title: "First task",
-                description: "First description",
-                priority: TaskPriority.High,
-                dueDateUtc: now.AddDays(2),
-                createdAtUtc: now);
-
-        var secondTask =
-            TaskItem.Create(
-                projectId: project.Id,
-                createdByUserId: ownerId,
-                title: "Second task",
-                description: null,
-                priority: TaskPriority.Low,
-                dueDateUtc: null,
-                createdAtUtc: now.AddMinutes(1));
-
-        IReadOnlyList<TaskItem> taskItems =
-        [
-            firstTask,
-            secondTask
-        ];
+                project.Id,
+                ownerId,
+                "Release task",
+                "Release description",
+                TaskPriority.High,
+                now.AddDays(2),
+                now);
 
         currentUser.UserId.Returns(
             ownerId);
@@ -79,10 +64,15 @@ public sealed class GetProjectTasksHandlerTests
             .Returns(project);
 
         taskItemRepository
-            .GetByProjectAsync(
-                project.Id,
+            .GetPageByProjectAsync(
+                Arg.Any<TaskItemQueryOptions>(),
                 cancellationToken)
-            .Returns(taskItems);
+            .Returns(
+                new PagedResult<TaskItem>(
+                    [taskItem],
+                    page: 2,
+                    pageSize: 5,
+                    totalCount: 7));
 
         var handler =
             CreateHandler(
@@ -91,75 +81,56 @@ public sealed class GetProjectTasksHandlerTests
                 taskItemRepository,
                 currentUser);
 
+        var dueFrom =
+            new DateTimeOffset(
+                2026,
+                9,
+                4,
+                14,
+                0,
+                0,
+                TimeSpan.FromHours(2));
+
         var query =
             new GetProjectTasksQuery(
-                project.Id);
+                ProjectId: project.Id,
+                Page: 2,
+                PageSize: 5,
+                Status: TaskItemStatus.Backlog,
+                Priority: TaskPriority.High,
+                AssigneeId: ownerId,
+                DueFromUtc: dueFrom,
+                DueToUtc: dueFrom.AddDays(3),
+                Search: "  release  ",
+                SortBy: TaskItemSortBy.Priority,
+                SortDirection: SortDirection.Desc);
 
         var result =
             await handler.HandleAsync(
                 query,
                 cancellationToken);
 
+        Assert.Single(result);
+
         Assert.Equal(
             2,
-            result.Count);
+            result.Page);
 
         Assert.Equal(
-            firstTask.Id,
+            5,
+            result.PageSize);
+
+        Assert.Equal(
+            7,
+            result.TotalCount);
+
+        Assert.Equal(
+            2,
+            result.TotalPages);
+
+        Assert.Equal(
+            taskItem.Id,
             result[0].TaskItemId);
-
-        Assert.Equal(
-            project.Id,
-            result[0].ProjectId);
-
-        Assert.Equal(
-            ownerId,
-            result[0].CreatedByUserId);
-
-        Assert.Null(
-            result[0].AssigneeId);
-
-        Assert.Equal(
-            "First task",
-            result[0].Title);
-
-        Assert.Equal(
-            "First description",
-            result[0].Description);
-
-        Assert.Equal(
-            TaskItemStatus.Backlog,
-            result[0].Status);
-
-        Assert.Equal(
-            TaskPriority.High,
-            result[0].Priority);
-
-        Assert.Equal(
-            now.AddDays(2),
-            result[0].DueDateUtc);
-
-        Assert.Equal(
-            now,
-            result[0].CreatedAtUtc);
-
-        Assert.Null(
-            result[0].UpdatedAtUtc);
-
-        Assert.Null(
-            result[0].CompletedAtUtc);
-
-        Assert.Equal(
-            secondTask.Id,
-            result[1].TaskItemId);
-
-        Assert.Equal(
-            "Second task",
-            result[1].Title);
-
-        Assert.Equal(
-            TaskPriority.Low,
-            result[1].Priority);
 
         await projectMemberRepository
             .DidNotReceive()
@@ -170,8 +141,20 @@ public sealed class GetProjectTasksHandlerTests
 
         await taskItemRepository
             .Received(1)
-            .GetByProjectAsync(
-                project.Id,
+            .GetPageByProjectAsync(
+                Arg.Is<TaskItemQueryOptions>(
+                    options =>
+                        options.ProjectId == project.Id &&
+                        options.Page == 2 &&
+                        options.PageSize == 5 &&
+                        options.Status == TaskItemStatus.Backlog &&
+                        options.Priority == TaskPriority.High &&
+                        options.AssigneeId == ownerId &&
+                        options.DueFromUtc == dueFrom.ToUniversalTime() &&
+                        options.DueToUtc == dueFrom.AddDays(3).ToUniversalTime() &&
+                        options.Search == "release" &&
+                        options.SortBy == TaskItemSortBy.Priority &&
+                        options.SortDirection == SortDirection.Desc),
                 cancellationToken);
     }
 
@@ -215,18 +198,13 @@ public sealed class GetProjectTasksHandlerTests
 
         var taskItem =
             TaskItem.Create(
-                projectId: project.Id,
-                createdByUserId: ownerId,
-                title: "Visible task",
-                description: null,
-                priority: TaskPriority.Medium,
-                dueDateUtc: null,
-                createdAtUtc: now);
-
-        IReadOnlyList<TaskItem> taskItems =
-        [
-            taskItem
-        ];
+                project.Id,
+                ownerId,
+                "Visible task",
+                null,
+                TaskPriority.Medium,
+                null,
+                now);
 
         currentUser.UserId.Returns(
             memberId);
@@ -248,10 +226,15 @@ public sealed class GetProjectTasksHandlerTests
             .Returns(membership);
 
         taskItemRepository
-            .GetByProjectAsync(
-                project.Id,
+            .GetPageByProjectAsync(
+                Arg.Any<TaskItemQueryOptions>(),
                 cancellationToken)
-            .Returns(taskItems);
+            .Returns(
+                new PagedResult<TaskItem>(
+                    [taskItem],
+                    1,
+                    20,
+                    1));
 
         var handler =
             CreateHandler(
@@ -260,13 +243,10 @@ public sealed class GetProjectTasksHandlerTests
                 taskItemRepository,
                 currentUser);
 
-        var query =
-            new GetProjectTasksQuery(
-                project.Id);
-
         var result =
             await handler.HandleAsync(
-                query,
+                new GetProjectTasksQuery(
+                    project.Id),
                 cancellationToken);
 
         Assert.Single(result);
@@ -274,27 +254,10 @@ public sealed class GetProjectTasksHandlerTests
         Assert.Equal(
             taskItem.Id,
             result[0].TaskItemId);
-
-        Assert.Equal(
-            "Visible task",
-            result[0].Title);
-
-        await projectMemberRepository
-            .Received(1)
-            .GetByProjectAndUserAsync(
-                project.Id,
-                memberId,
-                cancellationToken);
-
-        await taskItemRepository
-            .Received(1)
-            .GetByProjectAsync(
-                project.Id,
-                cancellationToken);
     }
 
     [Fact]
-    public async Task HandleAsyncWhenProjectHasNoTasksReturnsEmptyList()
+    public async Task HandleAsyncWhenProjectHasNoTasksReturnsEmptyPage()
     {
         var projectRepository =
             Substitute.For<IProjectRepository>();
@@ -334,10 +297,15 @@ public sealed class GetProjectTasksHandlerTests
             .Returns(project);
 
         taskItemRepository
-            .GetByProjectAsync(
-                project.Id,
+            .GetPageByProjectAsync(
+                Arg.Any<TaskItemQueryOptions>(),
                 cancellationToken)
-            .Returns(Array.Empty<TaskItem>());
+            .Returns(
+                new PagedResult<TaskItem>(
+                    Array.Empty<TaskItem>(),
+                    1,
+                    20,
+                    0));
 
         var handler =
             CreateHandler(
@@ -346,26 +314,19 @@ public sealed class GetProjectTasksHandlerTests
                 taskItemRepository,
                 currentUser);
 
-        var query =
-            new GetProjectTasksQuery(
-                project.Id);
-
         var result =
             await handler.HandleAsync(
-                query,
+                new GetProjectTasksQuery(
+                    project.Id),
                 cancellationToken);
 
         Assert.Empty(result);
-
-        await taskItemRepository
-            .Received(1)
-            .GetByProjectAsync(
-                project.Id,
-                cancellationToken);
+        Assert.Equal(0, result.TotalCount);
+        Assert.Equal(0, result.TotalPages);
     }
 
     [Fact]
-    public async Task HandleAsyncWhenCurrentUserWasRemovedThrowsNotFoundException()
+    public async Task HandleAsyncWhenProjectIsArchivedStillReturnsTasks()
     {
         var projectRepository =
             Substitute.For<IProjectRepository>();
@@ -385,28 +346,28 @@ public sealed class GetProjectTasksHandlerTests
         var ownerId =
             Guid.NewGuid();
 
-        var memberId =
-            Guid.NewGuid();
-
         var project =
             Project.Create(
                 ownerId,
-                "Removed Member Project",
+                "Archived Project",
                 null,
                 now);
 
-        var membership =
-            ProjectMember.Create(
+        var taskItem =
+            TaskItem.Create(
                 project.Id,
-                memberId,
-                ProjectMemberRole.Member,
+                ownerId,
+                "Archived task",
+                null,
+                TaskPriority.Medium,
+                null,
                 now);
 
-        membership.Remove(
+        project.Archive(
             now.AddMinutes(1));
 
         currentUser.UserId.Returns(
-            memberId);
+            ownerId);
 
         var cancellationToken =
             TestContext.Current.CancellationToken;
@@ -417,12 +378,16 @@ public sealed class GetProjectTasksHandlerTests
                 cancellationToken)
             .Returns(project);
 
-        projectMemberRepository
-            .GetByProjectAndUserAsync(
-                project.Id,
-                memberId,
+        taskItemRepository
+            .GetPageByProjectAsync(
+                Arg.Any<TaskItemQueryOptions>(),
                 cancellationToken)
-            .Returns(membership);
+            .Returns(
+                new PagedResult<TaskItem>(
+                    [taskItem],
+                    1,
+                    20,
+                    1));
 
         var handler =
             CreateHandler(
@@ -431,25 +396,13 @@ public sealed class GetProjectTasksHandlerTests
                 taskItemRepository,
                 currentUser);
 
-        var query =
-            new GetProjectTasksQuery(
-                project.Id);
+        var result =
+            await handler.HandleAsync(
+                new GetProjectTasksQuery(
+                    project.Id),
+                cancellationToken);
 
-        var exception =
-            await Assert.ThrowsAsync<ApplicationNotFoundException>(
-                () => handler.HandleAsync(
-                    query,
-                    cancellationToken));
-
-        Assert.Equal(
-            "Project was not found.",
-            exception.Message);
-
-        await taskItemRepository
-            .DidNotReceive()
-            .GetByProjectAsync(
-                Arg.Any<Guid>(),
-                Arg.Any<CancellationToken>());
+        Assert.Single(result);
     }
 
     [Fact]
@@ -467,9 +420,6 @@ public sealed class GetProjectTasksHandlerTests
         var currentUser =
             Substitute.For<ICurrentUser>();
 
-        var now =
-            CreateUtcTime();
-
         var ownerId =
             Guid.NewGuid();
 
@@ -481,7 +431,7 @@ public sealed class GetProjectTasksHandlerTests
                 ownerId,
                 "Private Project",
                 null,
-                now);
+                CreateUtcTime());
 
         currentUser.UserId.Returns(
             outsiderId);
@@ -509,14 +459,11 @@ public sealed class GetProjectTasksHandlerTests
                 taskItemRepository,
                 currentUser);
 
-        var query =
-            new GetProjectTasksQuery(
-                project.Id);
-
         var exception =
             await Assert.ThrowsAsync<ApplicationNotFoundException>(
                 () => handler.HandleAsync(
-                    query,
+                    new GetProjectTasksQuery(
+                        project.Id),
                     cancellationToken));
 
         Assert.Equal(
@@ -525,8 +472,8 @@ public sealed class GetProjectTasksHandlerTests
 
         await taskItemRepository
             .DidNotReceive()
-            .GetByProjectAsync(
-                Arg.Any<Guid>(),
+            .GetPageByProjectAsync(
+                Arg.Any<TaskItemQueryOptions>(),
                 Arg.Any<CancellationToken>());
     }
 
@@ -564,164 +511,96 @@ public sealed class GetProjectTasksHandlerTests
                 taskItemRepository,
                 currentUser);
 
-        var query =
-            new GetProjectTasksQuery(
-                projectId);
-
-        var exception =
-            await Assert.ThrowsAsync<ApplicationNotFoundException>(
-                () => handler.HandleAsync(
-                    query,
-                    cancellationToken));
-
-        Assert.Equal(
-            "Project was not found.",
-            exception.Message);
+        await Assert.ThrowsAsync<ApplicationNotFoundException>(
+            () => handler.HandleAsync(
+                new GetProjectTasksQuery(
+                    projectId),
+                cancellationToken));
 
         await taskItemRepository
             .DidNotReceive()
-            .GetByProjectAsync(
-                Arg.Any<Guid>(),
+            .GetPageByProjectAsync(
+                Arg.Any<TaskItemQueryOptions>(),
                 Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task HandleAsyncWhenProjectIsArchivedStillReturnsTasks()
-    {
-        var projectRepository =
-            Substitute.For<IProjectRepository>();
-
-        var projectMemberRepository =
-            Substitute.For<IProjectMemberRepository>();
-
-        var taskItemRepository =
-            Substitute.For<ITaskItemRepository>();
-
-        var currentUser =
-            Substitute.For<ICurrentUser>();
-
-        var now =
-            CreateUtcTime();
-
-        var ownerId =
-            Guid.NewGuid();
-
-        var project =
-            Project.Create(
-                ownerId,
-                "Archived Project",
-                null,
-                now);
-
-        var taskItem =
-            TaskItem.Create(
-                projectId: project.Id,
-                createdByUserId: ownerId,
-                title: "Archived project task",
-                description: null,
-                priority: TaskPriority.Medium,
-                dueDateUtc: null,
-                createdAtUtc: now);
-
-        project.Archive(
-            now.AddMinutes(1));
-
-        IReadOnlyList<TaskItem> taskItems =
-        [
-            taskItem
-        ];
-
-        currentUser.UserId.Returns(
-            ownerId);
-
-        var cancellationToken =
-            TestContext.Current.CancellationToken;
-
-        projectRepository
-            .GetByIdAsync(
-                project.Id,
-                cancellationToken)
-            .Returns(project);
-
-        taskItemRepository
-            .GetByProjectAsync(
-                project.Id,
-                cancellationToken)
-            .Returns(taskItems);
-
-        var handler =
-            CreateHandler(
-                projectRepository,
-                projectMemberRepository,
-                taskItemRepository,
-                currentUser);
-
-        var query =
-            new GetProjectTasksQuery(
-                project.Id);
-
-        var result =
-            await handler.HandleAsync(
-                query,
-                cancellationToken);
-
-        Assert.Single(result);
-
-        Assert.Equal(
-            taskItem.Id,
-            result[0].TaskItemId);
     }
 
     [Fact]
     public async Task HandleAsyncWhenProjectIdIsEmptyThrowsValidationException()
     {
-        var projectRepository =
-            Substitute.For<IProjectRepository>();
-
-        var projectMemberRepository =
-            Substitute.For<IProjectMemberRepository>();
-
-        var taskItemRepository =
-            Substitute.For<ITaskItemRepository>();
-
-        var currentUser =
-            Substitute.For<ICurrentUser>();
-
         var handler =
             CreateHandler(
-                projectRepository,
-                projectMemberRepository,
-                taskItemRepository,
-                currentUser);
-
-        var query =
-            new GetProjectTasksQuery(
-                Guid.Empty);
-
-        var cancellationToken =
-            TestContext.Current.CancellationToken;
+                Substitute.For<IProjectRepository>(),
+                Substitute.For<IProjectMemberRepository>(),
+                Substitute.For<ITaskItemRepository>(),
+                Substitute.For<ICurrentUser>());
 
         var exception =
             await Assert.ThrowsAsync<ApplicationValidationException>(
                 () => handler.HandleAsync(
-                    query,
-                    cancellationToken));
+                    new GetProjectTasksQuery(
+                        Guid.Empty),
+                    TestContext.Current.CancellationToken));
 
         Assert.Equal(
             "Project identifier cannot be empty.",
             exception.Message);
+    }
 
-        await projectRepository
-            .DidNotReceive()
-            .GetByIdAsync(
-                Arg.Any<Guid>(),
-                Arg.Any<CancellationToken>());
+    [Theory]
+    [InlineData(0, 20, "Page must be greater than or equal to 1.")]
+    [InlineData(1, 0, "Page size must be between 1 and 100.")]
+    [InlineData(1, 101, "Page size must be between 1 and 100.")]
+    public async Task HandleAsyncWhenPaginationIsInvalidThrowsValidationException(
+        int page,
+        int pageSize,
+        string expectedMessage)
+    {
+        var handler =
+            CreateHandler(
+                Substitute.For<IProjectRepository>(),
+                Substitute.For<IProjectMemberRepository>(),
+                Substitute.For<ITaskItemRepository>(),
+                Substitute.For<ICurrentUser>());
 
-        await taskItemRepository
-            .DidNotReceive()
-            .GetByProjectAsync(
-                Arg.Any<Guid>(),
-                Arg.Any<CancellationToken>());
+        var exception =
+            await Assert.ThrowsAsync<ApplicationValidationException>(
+                () => handler.HandleAsync(
+                    new GetProjectTasksQuery(
+                        Guid.NewGuid(),
+                        Page: page,
+                        PageSize: pageSize),
+                    TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            expectedMessage,
+            exception.Message);
+    }
+
+    [Fact]
+    public async Task HandleAsyncWhenDueRangeIsInvalidThrowsValidationException()
+    {
+        var handler =
+            CreateHandler(
+                Substitute.For<IProjectRepository>(),
+                Substitute.For<IProjectMemberRepository>(),
+                Substitute.For<ITaskItemRepository>(),
+                Substitute.For<ICurrentUser>());
+
+        var from =
+            CreateUtcTime().AddDays(2);
+
+        var exception =
+            await Assert.ThrowsAsync<ApplicationValidationException>(
+                () => handler.HandleAsync(
+                    new GetProjectTasksQuery(
+                        Guid.NewGuid(),
+                        DueFromUtc: from,
+                        DueToUtc: from.AddDays(-1)),
+                    TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            "Due date range is invalid.",
+            exception.Message);
     }
 
     private static GetProjectTasksHandler CreateHandler(

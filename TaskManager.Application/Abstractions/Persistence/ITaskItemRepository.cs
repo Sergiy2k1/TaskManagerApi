@@ -1,3 +1,4 @@
+using TaskManager.Application.Common.Pagination;
 using TaskManager.Domain.Entities;
 
 namespace TaskManager.Application.Abstractions.Persistence;
@@ -10,6 +11,10 @@ public interface ITaskItemRepository
 
     Task<IReadOnlyList<TaskItem>> GetByProjectAsync(
         Guid projectId,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResult<TaskItem>> GetPageByProjectAsync(
+        TaskItemQueryOptions options,
         CancellationToken cancellationToken = default);
 
     void Add(TaskItem taskItem);

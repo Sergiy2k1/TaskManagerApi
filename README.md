@@ -25,6 +25,7 @@ Implemented today:
 - Docker Compose local environment with PostgreSQL and automatic migrations;
 - GitHub Actions CI for restore, Release build, unit tests, and PostgreSQL integration tests;
 - API integration test infrastructure using `WebApplicationFactory<Program>` and PostgreSQL Testcontainers;
+- paged task listing with database-side filtering, search, and deterministic sorting;
 - nullable reference types, analyzers, code-style checks, and warnings as errors.
 
 Production-readiness work is intentionally incremental. API-level integration tests, pagination/filtering, optimistic concurrency, health checks, observability, and rate limiting are part of the next roadmap stages and are **not presented here as already implemented**.
@@ -742,7 +743,7 @@ It demonstrates a working flow and automatically carries generated ids/tokens be
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/projects/{projectId}/tasks` | List project tasks |
+| GET | `/api/projects/{projectId}/tasks` | List project tasks with pagination, filters, search, and sorting |
 | GET | `/api/projects/{projectId}/tasks/{taskItemId}` | Get task |
 | POST | `/api/projects/{projectId}/tasks` | Create task |
 | PUT | `/api/projects/{projectId}/tasks/{taskItemId}` | Update task |
@@ -827,11 +828,38 @@ The project intentionally does not add microservices, Kafka, Redis, Kubernetes, 
 
 ---
 
+## Pagination, filtering, search, and sorting
+
+The project-task collection endpoint now performs bounded database-side querying instead of materializing an unbounded task list.
+
+`GET /api/projects/{projectId}/tasks` supports:
+
+- `page` and `pageSize` (maximum page size: 100);
+- `status`;
+- `priority`;
+- `assigneeId`;
+- `dueFromUtc` and `dueToUtc`;
+- case-insensitive `search` over title and description;
+- `sortBy`: `CreatedAt`, `DueDate`, `Priority`, `Status`, `Title`, or `UpdatedAt`;
+- `sortDirection`: `Asc` or `Desc`.
+
+The response contains `items`, `page`, `pageSize`, `totalCount`, and `totalPages`. Filtering and counting happen in PostgreSQL before `Skip/Take`, and every sort path includes a deterministic id tie-breaker.
+
+Example:
+
+```http
+GET /api/projects/{projectId}/tasks?page=1&pageSize=20&status=InProgress&priority=High&search=release&sortBy=DueDate&sortDirection=Asc
+```
+
+Project/member/comment collection pagination remains an incremental follow-up rather than being mixed into the task-query change.
+
+---
+
 ## Roadmap
 
 The next production-oriented stages are intentionally incremental:
 
-1. pagination, filtering, searching, and sorting for list endpoints;
+1. extend bounded pagination to the remaining project/member/comment list endpoints;
 2. optimistic concurrency for project/task updates;
 3. consistency and transaction review;
 4. liveness/readiness health checks;

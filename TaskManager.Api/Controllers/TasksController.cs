@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts.Tasks;
 using TaskManager.Application.Abstractions.Messaging;
+using TaskManager.Application.Common.Pagination;
 using TaskManager.Application.Tasks.Assign;
 using TaskManager.Application.Tasks.ChangeStatus;
 using TaskManager.Application.Tasks.Create;
@@ -27,7 +28,7 @@ public sealed class TasksController : ControllerBase
 
     private readonly IQueryHandler<
         GetProjectTasksQuery,
-        IReadOnlyList<GetProjectTasksResult>> _getProjectTasksHandler;
+        PagedResult<GetProjectTasksResult>> _getProjectTasksHandler;
 
     private readonly ICommandHandler<
         UpdateTaskCommand,
@@ -54,7 +55,7 @@ public sealed class TasksController : ControllerBase
             GetTaskByIdResult> getTaskByIdHandler,
         IQueryHandler<
             GetProjectTasksQuery,
-            IReadOnlyList<GetProjectTasksResult>> getProjectTasksHandler,
+            PagedResult<GetProjectTasksResult>> getProjectTasksHandler,
         ICommandHandler<
             UpdateTaskCommand,
             UpdateTaskResult> updateTaskHandler,
@@ -125,28 +126,39 @@ public sealed class TasksController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(
-        typeof(IReadOnlyList<GetProjectTaskResponse>),
+        typeof(GetProjectTasksPageResponse),
         StatusCodes.Status200OK)]
     [ProducesResponseType(
         StatusCodes.Status400BadRequest)]
     [ProducesResponseType(
         StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<
-        IReadOnlyList<GetProjectTaskResponse>>> GetByProject(
-        Guid projectId,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<GetProjectTasksPageResponse>>
+        GetByProject(
+            Guid projectId,
+            [FromQuery] GetProjectTasksRequest request,
+            CancellationToken cancellationToken)
     {
         var query =
             new GetProjectTasksQuery(
-                ProjectId: projectId);
+                ProjectId: projectId,
+                Page: request.Page,
+                PageSize: request.PageSize,
+                Status: request.Status,
+                Priority: request.Priority,
+                AssigneeId: request.AssigneeId,
+                DueFromUtc: request.DueFromUtc,
+                DueToUtc: request.DueToUtc,
+                Search: request.Search,
+                SortBy: request.SortBy,
+                SortDirection: request.SortDirection);
 
         var result =
             await _getProjectTasksHandler.HandleAsync(
                 query,
                 cancellationToken);
 
-        var response =
-            result
+        var items =
+            result.Items
                 .Select(
                     task =>
                         new GetProjectTaskResponse(
@@ -164,7 +176,13 @@ public sealed class TasksController : ControllerBase
                             CompletedAtUtc: task.CompletedAtUtc))
                 .ToArray();
 
-        return Ok(response);
+        return Ok(
+            new GetProjectTasksPageResponse(
+                Items: items,
+                Page: result.Page,
+                PageSize: result.PageSize,
+                TotalCount: result.TotalCount,
+                TotalPages: result.TotalPages));
     }
 
     [HttpPut("{taskItemId:guid}")]

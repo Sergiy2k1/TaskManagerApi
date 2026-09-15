@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TaskManager.Application.Abstractions.Authorization;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Common.Authorization;
+using TaskManager.Application.Common.Pagination;
 using TaskManager.Application.Projects.AddMember;
 using TaskManager.Application.Projects.Archive;
 using TaskManager.Application.Projects.ChangeMemberRole;
@@ -106,7 +107,7 @@ public static class DependencyInjection
         services.AddScoped<
             IQueryHandler<
                 GetProjectTasksQuery,
-                IReadOnlyList<GetProjectTasksResult>>,
+                PagedResult<GetProjectTasksResult>>,
             GetProjectTasksHandler>();
 
         services.AddScoped<
