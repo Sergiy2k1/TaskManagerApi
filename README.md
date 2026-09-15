@@ -435,16 +435,22 @@ Project:
 tests/TaskManager.Api.IntegrationTests
 ```
 
-The initial coverage verifies:
+Current coverage verifies:
 
 - the API can boot through the real ASP.NET Core pipeline;
 - the public ping endpoint returns `200 OK`;
 - a protected endpoint returns `401 Unauthorized` without a token;
-- register → login → authenticated profile works through HTTP, JWT authentication, application handlers, EF Core, and PostgreSQL.
+- register → login → authenticated profile;
+- project creation and persisted read-back;
+- project archive → persisted archived state → restore;
+- task creation and persisted read-back;
+- the full valid task status path from `Backlog` to `Completed`, including persisted completion state.
+
+These scenarios execute through HTTP, JWT authentication, controllers, application handlers, EF Core, and PostgreSQL.
 
 The fixture applies real EF Core migrations before the test server is created and provides a database reset hook for isolated scenario tests.
 
-Broader project/member/task/comment and ProblemDetails scenarios are the next API-test iteration.
+Member/role, assignment, comment, authorization-error, validation, not-found, and conflict scenarios remain for the next API-test iteration.
 
 ---
 
