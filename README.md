@@ -19,6 +19,7 @@ Implemented today:
 - resource-level authorization;
 - ProblemDetails-based error responses;
 - separate liveness and PostgreSQL-backed readiness probes;
+- structured request logging with correlation and W3C trace identifiers;
 - EF Core migrations;
 - PostgreSQL persistence;
 - Testcontainers-based integration tests;
@@ -456,7 +457,8 @@ Current coverage verifies:
 - archived-project mutation rejection with `409 Conflict`;
 - domain validation mapped to `400 Bad Request`;
 - ProblemDetails status/title/detail/instance/trace-id semantics for representative 400/403/404/409 responses;
-- concurrent duplicate registration resolves to one successful create and one `409 Conflict` rather than a `500`.
+- concurrent duplicate registration resolves to one successful create and one `409 Conflict` rather than a `500`;
+- request correlation is returned to clients and preserved when a valid `X-Correlation-ID` is supplied.
 
 These scenarios execute through HTTP, JWT authentication, authorization policies, controllers, application handlers, EF Core, and PostgreSQL.
 
@@ -920,18 +922,34 @@ Deployment platforms can use `/health/live` for liveness and `/health/ready` for
 
 ---
 
+## Structured logging and request correlation
+
+The API uses the built-in `ILogger` abstractions with structured message templates and JSON console formatting. No extra logging framework is added because the built-in logging pipeline is sufficient for the current deployment model.
+
+Every request gets two identifiers:
+
+- `traceId` comes from the current ASP.NET Core `Activity` and follows the distributed-tracing context when a W3C `traceparent` header is present;
+- `correlationId` is an application-level request correlation value. A valid client-supplied `X-Correlation-ID` is preserved; otherwise the API generates one.
+
+The correlation id is returned in the `X-Correlation-ID` response header. ProblemDetails responses contain both `traceId` and `correlationId`, so a client-visible failure can be matched to server logs.
+
+Request-completion logs include method, path, status code, elapsed time, correlation id, and trace id as structured properties. Query strings, request bodies, authorization headers, JWTs, passwords, and connection strings are deliberately not logged. Successful health probes are logged only at Debug level to avoid high-volume probe noise.
+
+This provides a useful correlation baseline without pretending that application logs are a full observability stack. Distributed trace export and metrics remain a separate OpenTelemetry stage.
+
+---
+
 ## Roadmap
 
 The next production-oriented stages are intentionally incremental:
 
-1. structured logging and trace correlation;
-2. OpenTelemetry traces and basic metrics;
-3. ASP.NET Core rate limiting, especially for login/register;
-4. authentication/session improvements if justified;
-5. API/validation/security review;
-6. PostgreSQL and EF Core performance review;
-7. handler-dispatch refactoring only if constructor/registration growth justifies it;
-8. short Architecture Decision Records under `docs/adr`.
+1. OpenTelemetry traces and basic metrics;
+2. ASP.NET Core rate limiting, especially for login/register;
+3. authentication/session improvements if justified;
+4. API/validation/security review;
+5. PostgreSQL and EF Core performance review;
+6. handler-dispatch refactoring only if constructor/registration growth justifies it;
+7. short Architecture Decision Records under `docs/adr`.
 
 ---
 

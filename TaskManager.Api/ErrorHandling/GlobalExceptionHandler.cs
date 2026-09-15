@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using TaskManager.Api.Observability;
 using TaskManager.Application.Common.Exceptions;
 using TaskManager.Domain.Exceptions;
 
@@ -27,6 +28,14 @@ public sealed partial class GlobalExceptionHandler
         var (statusCode, title, detail) =
             MapException(exception);
 
+        var traceId =
+            RequestCorrelation.GetTraceId(
+                httpContext);
+
+        var correlationId =
+            RequestCorrelation.GetCorrelationId(
+                httpContext);
+
         if (statusCode ==
             StatusCodes.Status500InternalServerError)
         {
@@ -35,7 +44,8 @@ public sealed partial class GlobalExceptionHandler
                 exception,
                 httpContext.Request.Method,
                 httpContext.Request.Path,
-                httpContext.TraceIdentifier);
+                correlationId,
+                traceId);
         }
 
         httpContext.Response.StatusCode = statusCode;
@@ -49,7 +59,10 @@ public sealed partial class GlobalExceptionHandler
         };
 
         problemDetails.Extensions["traceId"] =
-            httpContext.TraceIdentifier;
+            traceId;
+
+        problemDetails.Extensions["correlationId"] =
+            correlationId;
 
         await _problemDetailsService.WriteAsync(
             new ProblemDetailsContext
@@ -66,12 +79,13 @@ public sealed partial class GlobalExceptionHandler
         EventId = 1,
         Level = LogLevel.Error,
         Message =
-            "Unhandled exception while processing {Method} {Path}. TraceId: {TraceId}")]
+            "Unhandled exception while processing {Method} {Path}. CorrelationId: {CorrelationId}. TraceId: {TraceId}")]
     private static partial void LogUnhandledException(
         ILogger logger,
         Exception exception,
         string method,
         PathString path,
+        string correlationId,
         string traceId);
 
     private static (

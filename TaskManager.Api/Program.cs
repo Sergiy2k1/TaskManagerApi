@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using TaskManager.Api;
 using TaskManager.Api.Health;
+using TaskManager.Api.Observability;
 using TaskManager.Application;
 using TaskManager.Infrastructure;
 
@@ -23,6 +24,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseMiddleware<RequestCorrelationMiddleware>();
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
