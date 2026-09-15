@@ -79,9 +79,8 @@ public sealed class CollectionPaginationTests
 
     private static async Task<RegisteredUser> RegisterUserAsync(HttpClient client, CancellationToken ct)
     {
-        using var ownedClient = client;
         var email = $"pagination-{Guid.NewGuid():N}@example.com";
-        var response = await ownedClient.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, "Pagination User", "StrongPassword123"), ct);
+        var response = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, "Pagination User", "StrongPassword123"), ct);
         var registered = await response.Content.ReadFromJsonAsync<RegisterResponse>(ct);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.NotNull(registered);
