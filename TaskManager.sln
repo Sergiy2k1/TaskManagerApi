@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskManager.Application.Uni
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskManager.Infrastructure.IntegrationTests", "tests\TaskManager.Infrastructure.IntegrationTests\TaskManager.Infrastructure.IntegrationTests.csproj", "{FE3E1650-6003-4258-BF63-BDCF35310F28}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskManager.Api.IntegrationTests", "tests\TaskManager.Api.IntegrationTests\TaskManager.Api.IntegrationTests.csproj", "{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -108,6 +110,18 @@ Global
 		{FE3E1650-6003-4258-BF63-BDCF35310F28}.Release|x64.Build.0 = Release|Any CPU
 		{FE3E1650-6003-4258-BF63-BDCF35310F28}.Release|x86.ActiveCfg = Release|Any CPU
 		{FE3E1650-6003-4258-BF63-BDCF35310F28}.Release|x86.Build.0 = Release|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Debug|x64.Build.0 = Debug|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Debug|x86.Build.0 = Debug|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Release|x64.ActiveCfg = Release|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Release|x64.Build.0 = Release|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Release|x86.ActiveCfg = Release|Any CPU
+		{A4D84B97-7A0D-4A8A-93D7-ABF180F98604}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

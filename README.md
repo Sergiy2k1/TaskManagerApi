@@ -24,6 +24,7 @@ Implemented today:
 - Docker multi-stage build;
 - Docker Compose local environment with PostgreSQL and automatic migrations;
 - GitHub Actions CI for restore, Release build, unit tests, and PostgreSQL integration tests;
+- API integration test infrastructure using `WebApplicationFactory<Program>` and PostgreSQL Testcontainers;
 - nullable reference types, analyzers, code-style checks, and warnings as errors.
 
 Production-readiness work is intentionally incremental. API-level integration tests, pagination/filtering, optimistic concurrency, health checks, observability, and rate limiting are part of the next roadmap stages and are **not presented here as already implemented**.
@@ -132,7 +133,8 @@ TaskManagerApi/
 └── tests/
     ├── TaskManager.Domain.UnitTests/
     ├── TaskManager.Application.UnitTests/
-    └── TaskManager.Infrastructure.IntegrationTests/
+    ├── TaskManager.Infrastructure.IntegrationTests/
+    └── TaskManager.Api.IntegrationTests/
 ```
 
 ---
@@ -423,7 +425,26 @@ Project:
 tests/TaskManager.Infrastructure.IntegrationTests
 ```
 
-API-level `WebApplicationFactory<Program>` tests are planned as a separate stage so the full HTTP/authentication/controller/application/EF/PostgreSQL pipeline can be tested end-to-end.
+### API integration tests
+
+A dedicated API integration test project uses `WebApplicationFactory<Program>` together with a real PostgreSQL Testcontainer.
+
+Project:
+
+```text
+tests/TaskManager.Api.IntegrationTests
+```
+
+The initial coverage verifies:
+
+- the API can boot through the real ASP.NET Core pipeline;
+- the public ping endpoint returns `200 OK`;
+- a protected endpoint returns `401 Unauthorized` without a token;
+- register → login → authenticated profile works through HTTP, JWT authentication, application handlers, EF Core, and PostgreSQL.
+
+The fixture applies real EF Core migrations before the test server is created and provides a database reset hook for isolated scenario tests.
+
+Broader project/member/task/comment and ProblemDetails scenarios are the next API-test iteration.
 
 ---
 
@@ -651,6 +672,8 @@ dotnet test tests/TaskManager.Domain.UnitTests/TaskManager.Domain.UnitTests.cspr
 dotnet test tests/TaskManager.Application.UnitTests/TaskManager.Application.UnitTests.csproj
 
 dotnet test tests/TaskManager.Infrastructure.IntegrationTests/TaskManager.Infrastructure.IntegrationTests.csproj
+
+dotnet test tests/TaskManager.Api.IntegrationTests/TaskManager.Api.IntegrationTests.csproj
 ```
 
 The infrastructure integration test project requires a running Docker-compatible container runtime.
@@ -794,7 +817,7 @@ The project intentionally does not add microservices, Kafka, Redis, Kubernetes, 
 
 The next production-oriented stages are intentionally incremental:
 
-1. HTTP/API integration tests with `WebApplicationFactory<Program>` and PostgreSQL Testcontainers;
+1. expand API integration coverage for project/member/task/comment/error scenarios;
 2. pagination, filtering, searching, and sorting for list endpoints;
 3. optimistic concurrency for project/task updates;
 4. consistency and transaction review;
