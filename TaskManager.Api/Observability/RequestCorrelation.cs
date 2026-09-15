@@ -11,6 +11,9 @@ internal static class RequestCorrelation
     public const string HttpContextItemKey =
         "TaskManager.CorrelationId";
 
+    public const string TraceIdHttpContextItemKey =
+        "TaskManager.TraceId";
+
     private const int MaxCorrelationIdLength = 64;
 
     public static string GetOrCreateCorrelationId(
@@ -44,6 +47,16 @@ internal static class RequestCorrelation
     public static string GetTraceId(
         HttpContext context)
     {
+        if (context.Items.TryGetValue(
+                TraceIdHttpContextItemKey,
+                out var value) &&
+            value is string storedTraceId &&
+            !string.IsNullOrWhiteSpace(
+                storedTraceId))
+        {
+            return storedTraceId;
+        }
+
         var activityTraceId =
             Activity.Current?.TraceId.ToString();
 
