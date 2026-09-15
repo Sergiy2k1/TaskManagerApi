@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
+using TaskManager.Api.Contracts.Common;
 using TaskManager.Api.Contracts.Auth;
 using TaskManager.Api.Contracts.Projects;
 using TaskManager.Api.Contracts.TaskComments;
@@ -402,11 +403,12 @@ public sealed class CollaborationAuthorizationFlowTests
 
         var comments =
             await listResponse.Content
-                .ReadFromJsonAsync<List<TaskCommentResponse>>(
+                .ReadFromJsonAsync<PagedResponse<TaskCommentResponse>>(
                     cancellationToken);
 
         Assert.NotNull(comments);
-        Assert.Empty(comments);
+        Assert.Empty(comments.Items);
+        Assert.Equal(0, comments.TotalCount);
     }
 
     [Fact]

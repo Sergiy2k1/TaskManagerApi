@@ -3,6 +3,7 @@ using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
 using TaskManager.Application.Common.Authorization;
 using TaskManager.Application.Common.Exceptions;
+using TaskManager.Application.Common.Pagination;
 using TaskManager.Application.Projects.GetMembers;
 using TaskManager.Domain.Entities;
 using TaskManager.Domain.Enums;
@@ -72,10 +73,12 @@ public sealed class GetProjectMembersHandlerTests
             .Returns(project);
 
         projectMemberRepository
-            .GetActiveByProjectAsync(
+            .GetActivePageByProjectAsync(
                 project.Id,
+                1,
+                20,
                 cancellationToken)
-            .Returns(members);
+            .Returns(new PagedResult<ProjectMember>(members, 1, 20, members.Count));
 
         var handler =
             CreateHandler(
@@ -187,10 +190,12 @@ public sealed class GetProjectMembersHandlerTests
             .Returns(currentMembership);
 
         projectMemberRepository
-            .GetActiveByProjectAsync(
+            .GetActivePageByProjectAsync(
                 project.Id,
+                1,
+                20,
                 cancellationToken)
-            .Returns(members);
+            .Returns(new PagedResult<ProjectMember>(members, 1, 20, members.Count));
 
         var handler =
             CreateHandler(
@@ -215,8 +220,10 @@ public sealed class GetProjectMembersHandlerTests
 
         await projectMemberRepository
             .Received(1)
-            .GetActiveByProjectAsync(
+            .GetActivePageByProjectAsync(
                 project.Id,
+                1,
+                20,
                 cancellationToken);
     }
 
@@ -298,8 +305,10 @@ public sealed class GetProjectMembersHandlerTests
 
         await projectMemberRepository
             .DidNotReceive()
-            .GetActiveByProjectAsync(
+            .GetActivePageByProjectAsync(
                 Arg.Any<Guid>(),
+                Arg.Any<int>(),
+                Arg.Any<int>(),
                 Arg.Any<CancellationToken>());
     }
 
@@ -371,8 +380,10 @@ public sealed class GetProjectMembersHandlerTests
 
         await projectMemberRepository
             .DidNotReceive()
-            .GetActiveByProjectAsync(
+            .GetActivePageByProjectAsync(
                 Arg.Any<Guid>(),
+                Arg.Any<int>(),
+                Arg.Any<int>(),
                 Arg.Any<CancellationToken>());
     }
 
@@ -422,9 +433,21 @@ public sealed class GetProjectMembersHandlerTests
 
         await projectMemberRepository
             .DidNotReceive()
-            .GetActiveByProjectAsync(
+            .GetActivePageByProjectAsync(
                 Arg.Any<Guid>(),
+                Arg.Any<int>(),
+                Arg.Any<int>(),
                 Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(0, 20, "Page must be greater than or equal to 1.")]
+    [InlineData(1, 101, "Page size must be between 1 and 100.")]
+    public async Task HandleAsyncWhenPaginationIsInvalidThrowsValidationException(int page, int pageSize, string expectedMessage)
+    {
+        var handler = CreateHandler(Substitute.For<IProjectRepository>(), Substitute.For<IProjectMemberRepository>(), Substitute.For<ICurrentUser>());
+        var exception = await Assert.ThrowsAsync<ApplicationValidationException>(() => handler.HandleAsync(new GetProjectMembersQuery(Guid.NewGuid(), page, pageSize), TestContext.Current.CancellationToken));
+        Assert.Equal(expectedMessage, exception.Message);
     }
 
     private static GetProjectMembersHandler CreateHandler(

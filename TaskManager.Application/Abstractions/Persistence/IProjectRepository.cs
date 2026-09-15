@@ -1,4 +1,5 @@
-﻿using TaskManager.Domain.Entities;
+using TaskManager.Application.Common.Pagination;
+using TaskManager.Domain.Entities;
 
 namespace TaskManager.Application.Abstractions.Persistence;
 
@@ -14,6 +15,12 @@ public interface IProjectRepository
 
     Task<IReadOnlyList<Project>> GetAccessibleByUserIdAsync(
         Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<PagedResult<Project>> GetAccessiblePageByUserIdAsync(
+        Guid userId,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken = default);
 
     void Add(Project project);

@@ -1,6 +1,8 @@
 using NSubstitute;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Application.Abstractions.Persistence;
+using TaskManager.Application.Common.Pagination;
+using TaskManager.Application.Common.Exceptions;
 using TaskManager.Application.Projects.GetAll;
 using TaskManager.Domain.Entities;
 using Xunit;
@@ -60,10 +62,12 @@ public sealed class GetProjectsHandlerTests
             TestContext.Current.CancellationToken;
 
         projectRepository
-            .GetAccessibleByUserIdAsync(
+            .GetAccessiblePageByUserIdAsync(
                 userId,
+                1,
+                20,
                 cancellationToken)
-            .Returns(projects);
+            .Returns(new PagedResult<Project>(projects, 1, 20, projects.Count));
 
         var handler =
             new GetProjectsHandler(
@@ -97,8 +101,10 @@ public sealed class GetProjectsHandlerTests
 
         await projectRepository
             .Received(1)
-            .GetAccessibleByUserIdAsync(
+            .GetAccessiblePageByUserIdAsync(
                 userId,
+                1,
+                20,
                 cancellationToken);
     }
 
@@ -120,10 +126,12 @@ public sealed class GetProjectsHandlerTests
             TestContext.Current.CancellationToken;
 
         projectRepository
-            .GetAccessibleByUserIdAsync(
+            .GetAccessiblePageByUserIdAsync(
                 userId,
+                1,
+                20,
                 cancellationToken)
-            .Returns(Array.Empty<Project>());
+            .Returns(new PagedResult<Project>(Array.Empty<Project>(), 1, 20, 0));
 
         var handler =
             new GetProjectsHandler(
@@ -136,6 +144,17 @@ public sealed class GetProjectsHandlerTests
                 cancellationToken);
 
         Assert.Empty(result);
+    }
+
+    [Theory]
+    [InlineData(0, 20, "Page must be greater than or equal to 1.")]
+    [InlineData(1, 0, "Page size must be between 1 and 100.")]
+    [InlineData(1, 101, "Page size must be between 1 and 100.")]
+    public async Task HandleAsyncWhenPaginationIsInvalidThrowsValidationException(int page, int pageSize, string expectedMessage)
+    {
+        var handler = new GetProjectsHandler(Substitute.For<IProjectRepository>(), Substitute.For<ICurrentUser>());
+        var exception = await Assert.ThrowsAsync<ApplicationValidationException>(() => handler.HandleAsync(new GetProjectsQuery(page, pageSize), TestContext.Current.CancellationToken));
+        Assert.Equal(expectedMessage, exception.Message);
     }
 
     [Fact]

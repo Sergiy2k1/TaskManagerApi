@@ -1,0 +1,7 @@
+namespace TaskManager.Api.Contracts.Common;
+
+public sealed class PaginationRequest
+{
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 20;
+}

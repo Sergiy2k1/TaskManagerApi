@@ -75,7 +75,7 @@ public static class DependencyInjection
             GetProjectByIdHandler>();
 
         services.AddScoped<
-            IQueryHandler<GetProjectsQuery, IReadOnlyList<GetProjectsResult>>,
+            IQueryHandler<GetProjectsQuery, PagedResult<GetProjectsResult>>,
             GetProjectsHandler>();
 
         services.AddScoped<
@@ -93,7 +93,7 @@ public static class DependencyInjection
         services.AddScoped<
             IQueryHandler<
                 GetProjectMembersQuery,
-                IReadOnlyList<GetProjectMembersResult>>,
+                PagedResult<GetProjectMembersResult>>,
             GetProjectMembersHandler>();
 
         services.AddScoped<
@@ -135,7 +135,7 @@ public static class DependencyInjection
         services.AddScoped<
             IQueryHandler<
                 GetTaskCommentsQuery,
-                IReadOnlyList<GetTaskCommentsResult>>,
+                PagedResult<GetTaskCommentsResult>>,
             GetTaskCommentsHandler>();
 
         services.AddScoped<

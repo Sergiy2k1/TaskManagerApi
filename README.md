@@ -25,7 +25,8 @@ Implemented today:
 - Docker Compose local environment with PostgreSQL and automatic migrations;
 - GitHub Actions CI for restore, Release build, unit tests, and PostgreSQL integration tests;
 - API integration test infrastructure using `WebApplicationFactory<Program>` and PostgreSQL Testcontainers;
-- paged task listing with database-side filtering, search, and deterministic sorting;
+- bounded database-side pagination for project, member, task, and comment collections;
+- task filtering, search, and deterministic sorting;
 - nullable reference types, analyzers, code-style checks, and warnings as errors.
 
 Production-readiness work is intentionally incremental. API-level integration tests, pagination/filtering, optimistic concurrency, health checks, observability, and rate limiting are part of the next roadmap stages and are **not presented here as already implemented**.
@@ -728,13 +729,13 @@ It demonstrates a working flow and automatically carries generated ids/tokens be
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/projects` | List accessible projects |
+| GET | `/api/projects` | List accessible projects with pagination |
 | GET | `/api/projects/{projectId}` | Get project |
 | POST | `/api/projects` | Create project |
 | PUT | `/api/projects/{projectId}` | Update project |
 | POST | `/api/projects/{projectId}/archive` | Archive project |
 | POST | `/api/projects/{projectId}/restore` | Restore project |
-| GET | `/api/projects/{projectId}/members` | List active members |
+| GET | `/api/projects/{projectId}/members` | List active members with pagination |
 | POST | `/api/projects/{projectId}/members` | Add / restore member |
 | PATCH | `/api/projects/{projectId}/members/{userId}/role` | Change member role |
 | DELETE | `/api/projects/{projectId}/members/{userId}` | Remove member |
@@ -755,7 +756,7 @@ It demonstrates a working flow and automatically carries generated ids/tokens be
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/api/projects/{projectId}/tasks/{taskItemId}/comments` | List active comments |
+| GET | `/api/projects/{projectId}/tasks/{taskItemId}/comments` | List active comments with pagination |
 | POST | `/api/projects/{projectId}/tasks/{taskItemId}/comments` | Add comment |
 | PATCH | `/api/projects/{projectId}/tasks/{taskItemId}/comments/{commentId}` | Edit comment |
 | DELETE | `/api/projects/{projectId}/tasks/{taskItemId}/comments/{commentId}` | Soft-delete comment |
@@ -851,7 +852,7 @@ Example:
 GET /api/projects/{projectId}/tasks?page=1&pageSize=20&status=InProgress&priority=High&search=release&sortBy=DueDate&sortDirection=Asc
 ```
 
-Project/member/comment collection pagination remains an incremental follow-up rather than being mixed into the task-query change.
+The remaining collection endpoints also use bounded database-side pagination: `GET /api/projects`, `GET /api/projects/{projectId}/members`, and `GET /api/projects/{projectId}/tasks/{taskItemId}/comments`. They share the same `page` / `pageSize` contract, default to 20 items, cap page size at 100, and return `items`, `page`, `pageSize`, `totalCount`, and `totalPages`.
 
 ---
 
@@ -859,18 +860,17 @@ Project/member/comment collection pagination remains an incremental follow-up ra
 
 The next production-oriented stages are intentionally incremental:
 
-1. extend bounded pagination to the remaining project/member/comment list endpoints;
-2. optimistic concurrency for project/task updates;
-3. consistency and transaction review;
-4. liveness/readiness health checks;
-5. structured logging and trace correlation;
-6. OpenTelemetry traces and basic metrics;
-7. ASP.NET Core rate limiting, especially for login/register;
-8. authentication/session improvements if justified;
-9. API/validation/security review;
-10. PostgreSQL and EF Core performance review;
-11. handler-dispatch refactoring only if constructor/registration growth justifies it;
-12. short Architecture Decision Records under `docs/adr`.
+1. optimistic concurrency for project/task updates;
+2. consistency and transaction review;
+3. liveness/readiness health checks;
+4. structured logging and trace correlation;
+5. OpenTelemetry traces and basic metrics;
+6. ASP.NET Core rate limiting, especially for login/register;
+7. authentication/session improvements if justified;
+8. API/validation/security review;
+9. PostgreSQL and EF Core performance review;
+10. handler-dispatch refactoring only if constructor/registration growth justifies it;
+11. short Architecture Decision Records under `docs/adr`.
 
 ---
 

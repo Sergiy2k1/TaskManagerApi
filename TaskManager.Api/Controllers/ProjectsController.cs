@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TaskManager.Api.Contracts.Common;
 using TaskManager.Api.Contracts.Projects;
 using TaskManager.Application.Abstractions.Messaging;
+using TaskManager.Application.Common.Pagination;
 using TaskManager.Application.Projects.AddMember;
 using TaskManager.Application.Projects.Archive;
 using TaskManager.Application.Projects.ChangeMemberRole;
@@ -54,11 +56,11 @@ public sealed class ProjectsController : ControllerBase
 
     private readonly IQueryHandler<
         GetProjectsQuery,
-        IReadOnlyList<GetProjectsResult>> _getProjectsHandler;
+        PagedResult<GetProjectsResult>> _getProjectsHandler;
 
     private readonly IQueryHandler<
         GetProjectMembersQuery,
-        IReadOnlyList<GetProjectMembersResult>> _getProjectMembersHandler;
+        PagedResult<GetProjectMembersResult>> _getProjectMembersHandler;
 
     public ProjectsController(
         ICommandHandler<
@@ -87,10 +89,10 @@ public sealed class ProjectsController : ControllerBase
             GetProjectByIdResult> getProjectByIdHandler,
         IQueryHandler<
             GetProjectsQuery,
-            IReadOnlyList<GetProjectsResult>> getProjectsHandler,
+            PagedResult<GetProjectsResult>> getProjectsHandler,
         IQueryHandler<
             GetProjectMembersQuery,
-            IReadOnlyList<GetProjectMembersResult>> getProjectMembersHandler)
+            PagedResult<GetProjectMembersResult>> getProjectMembersHandler)
     {
         _createProjectHandler = createProjectHandler;
         _updateProjectHandler = updateProjectHandler;
@@ -227,33 +229,28 @@ public sealed class ProjectsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(
-        typeof(IReadOnlyList<GetProjectResponse>),
-        StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<GetProjectResponse>>> GetAll(
+    [ProducesResponseType(typeof(PagedResponse<GetProjectResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResponse<GetProjectResponse>>> GetAll(
+        [FromQuery] PaginationRequest request,
         CancellationToken cancellationToken)
     {
-        var result =
-            await _getProjectsHandler.HandleAsync(
-                new GetProjectsQuery(),
-                cancellationToken);
+        var result = await _getProjectsHandler.HandleAsync(
+            new GetProjectsQuery(request.Page, request.PageSize),
+            cancellationToken);
 
-        var response =
-            result
-                .Select(
-                    project =>
-                        new GetProjectResponse(
-                            ProjectId: project.ProjectId,
-                            OwnerId: project.OwnerId,
-                            Name: project.Name,
-                            Description: project.Description,
-                            IsArchived: project.IsArchived,
-                            CreatedAtUtc: project.CreatedAtUtc,
-                            UpdatedAtUtc: project.UpdatedAtUtc,
-                            ArchivedAtUtc: project.ArchivedAtUtc))
-                .ToList();
+        var items = result.Items.Select(project => new GetProjectResponse(
+            project.ProjectId,
+            project.OwnerId,
+            project.Name,
+            project.Description,
+            project.IsArchived,
+            project.CreatedAtUtc,
+            project.UpdatedAtUtc,
+            project.ArchivedAtUtc)).ToArray();
 
-        return Ok(response);
+        return Ok(new PagedResponse<GetProjectResponse>(
+            items, result.Page, result.PageSize, result.TotalCount, result.TotalPages));
     }
 
     [HttpPost("{projectId:guid}/members")]
@@ -292,38 +289,27 @@ public sealed class ProjectsController : ControllerBase
     }
 
     [HttpGet("{projectId:guid}/members")]
-    [ProducesResponseType(
-        typeof(IReadOnlyList<GetProjectMemberResponse>),
-        StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<GetProjectMemberResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IReadOnlyList<GetProjectMemberResponse>>>
-        GetMembers(
-            Guid projectId,
-            CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<GetProjectMemberResponse>>> GetMembers(
+        Guid projectId,
+        [FromQuery] PaginationRequest request,
+        CancellationToken cancellationToken)
     {
-        var query =
-            new GetProjectMembersQuery(
-                ProjectId: projectId);
+        var result = await _getProjectMembersHandler.HandleAsync(
+            new GetProjectMembersQuery(projectId, request.Page, request.PageSize),
+            cancellationToken);
 
-        var result =
-            await _getProjectMembersHandler.HandleAsync(
-                query,
-                cancellationToken);
+        var items = result.Items.Select(member => new GetProjectMemberResponse(
+            member.ProjectMemberId,
+            member.UserId,
+            member.Role,
+            member.JoinedAtUtc,
+            member.UpdatedAtUtc)).ToArray();
 
-        var response =
-            result
-                .Select(
-                    member =>
-                        new GetProjectMemberResponse(
-                            ProjectMemberId: member.ProjectMemberId,
-                            UserId: member.UserId,
-                            Role: member.Role,
-                            JoinedAtUtc: member.JoinedAtUtc,
-                            UpdatedAtUtc: member.UpdatedAtUtc))
-                .ToList();
-
-        return Ok(response);
+        return Ok(new PagedResponse<GetProjectMemberResponse>(
+            items, result.Page, result.PageSize, result.TotalCount, result.TotalPages));
     }
 
     [HttpPatch("{projectId:guid}/members/{userId:guid}/role")]
