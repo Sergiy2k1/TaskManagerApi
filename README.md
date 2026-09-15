@@ -23,9 +23,10 @@ Implemented today:
 - Testcontainers-based integration tests;
 - Docker multi-stage build;
 - Docker Compose local environment with PostgreSQL and automatic migrations;
+- GitHub Actions CI for restore, Release build, unit tests, and PostgreSQL integration tests;
 - nullable reference types, analyzers, code-style checks, and warnings as errors.
 
-Production-readiness work is intentionally incremental. CI, API-level integration tests, pagination/filtering, optimistic concurrency, health checks, observability, and rate limiting are part of the next roadmap stages and are **not presented here as already implemented**.
+Production-readiness work is intentionally incremental. API-level integration tests, pagination/filtering, optimistic concurrency, health checks, observability, and rate limiting are part of the next roadmap stages and are **not presented here as already implemented**.
 
 ---
 
@@ -42,6 +43,7 @@ Production-readiness work is intentionally incremental. CI, API-level integratio
 - **NSubstitute**
 - **Testcontainers for PostgreSQL**
 - **Docker / Docker Compose**
+- **GitHub Actions**
 - **Microsoft.Testing.Platform**
 - **OpenAPI**
 
@@ -95,6 +97,9 @@ TaskManagerApi/
 ├── compose.yaml
 ├── .dockerignore
 ├── .env.example
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 │
 ├── TaskManager.Api/
 │   ├── Authentication/
@@ -436,6 +441,35 @@ Repository-wide build settings include:
 
 This makes compiler warnings and analyzer findings part of the normal quality gate.
 
+### Continuous Integration
+
+GitHub Actions runs CI on:
+
+- pushes to `main`;
+- pull requests targeting `main`.
+
+The workflow performs:
+
+```text
+checkout
+   ↓
+setup .NET 10
+   ↓
+dotnet restore
+   ↓
+dotnet build --configuration Release
+   ↓
+dotnet test --configuration Release
+```
+
+The test step runs the complete solution test suite, including PostgreSQL integration tests. Those tests use Testcontainers, so the GitHub-hosted Linux runner starts a real PostgreSQL container during CI.
+
+The workflow deliberately builds once and then runs tests with `--no-build --no-restore`. This keeps the pipeline explicit and avoids silently rebuilding the solution during the test stage.
+
+Warnings remain errors in CI because the same repository-wide `Directory.Build.props` settings apply to the Release build.
+
+Concurrent runs for the same Git ref are cancelled when a newer run starts, which avoids wasting CI time on superseded commits.
+
 ---
 
 ## Local development
@@ -760,20 +794,19 @@ The project intentionally does not add microservices, Kafka, Redis, Kubernetes, 
 
 The next production-oriented stages are intentionally incremental:
 
-1. GitHub Actions CI;
-2. HTTP/API integration tests with `WebApplicationFactory<Program>` and PostgreSQL Testcontainers;
-3. pagination, filtering, searching, and sorting for list endpoints;
-4. optimistic concurrency for project/task updates;
-5. consistency and transaction review;
-6. liveness/readiness health checks;
-7. structured logging and trace correlation;
-8. OpenTelemetry traces and basic metrics;
-9. ASP.NET Core rate limiting, especially for login/register;
-10. authentication/session improvements if justified;
-11. API/validation/security review;
-12. PostgreSQL and EF Core performance review;
-13. handler-dispatch refactoring only if constructor/registration growth justifies it;
-14. short Architecture Decision Records under `docs/adr`.
+1. HTTP/API integration tests with `WebApplicationFactory<Program>` and PostgreSQL Testcontainers;
+2. pagination, filtering, searching, and sorting for list endpoints;
+3. optimistic concurrency for project/task updates;
+4. consistency and transaction review;
+5. liveness/readiness health checks;
+6. structured logging and trace correlation;
+7. OpenTelemetry traces and basic metrics;
+8. ASP.NET Core rate limiting, especially for login/register;
+9. authentication/session improvements if justified;
+10. API/validation/security review;
+11. PostgreSQL and EF Core performance review;
+12. handler-dispatch refactoring only if constructor/registration growth justifies it;
+13. short Architecture Decision Records under `docs/adr`.
 
 ---
 
