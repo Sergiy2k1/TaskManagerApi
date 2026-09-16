@@ -63,7 +63,7 @@ public sealed class GetTaskByIdHandlerTests
             .Returns(project);
 
         taskItemRepository
-            .GetByIdAsync(
+            .GetByIdReadOnlyAsync(
                 taskItem.Id,
                 Arg.Any<CancellationToken>())
             .Returns(taskItem);
@@ -206,7 +206,7 @@ public sealed class GetTaskByIdHandlerTests
             .Returns(membership);
 
         taskItemRepository
-            .GetByIdAsync(
+            .GetByIdReadOnlyAsync(
                 taskItem.Id,
                 Arg.Any<CancellationToken>())
             .Returns(taskItem);
@@ -335,7 +335,7 @@ public sealed class GetTaskByIdHandlerTests
 
         await taskItemRepository
             .DidNotReceive()
-            .GetByIdAsync(
+            .GetByIdReadOnlyAsync(
                 Arg.Any<Guid>(),
                 Arg.Any<CancellationToken>());
     }
@@ -414,7 +414,7 @@ public sealed class GetTaskByIdHandlerTests
 
         await taskItemRepository
             .DidNotReceive()
-            .GetByIdAsync(
+            .GetByIdReadOnlyAsync(
                 Arg.Any<Guid>(),
                 Arg.Any<CancellationToken>());
     }
@@ -470,7 +470,7 @@ public sealed class GetTaskByIdHandlerTests
 
         await taskItemRepository
             .DidNotReceive()
-            .GetByIdAsync(
+            .GetByIdReadOnlyAsync(
                 Arg.Any<Guid>(),
                 Arg.Any<CancellationToken>());
     }
@@ -516,7 +516,7 @@ public sealed class GetTaskByIdHandlerTests
             .Returns(project);
 
         taskItemRepository
-            .GetByIdAsync(
+            .GetByIdReadOnlyAsync(
                 taskItemId,
                 Arg.Any<CancellationToken>())
             .Returns((TaskItem?)null);
@@ -598,7 +598,7 @@ public sealed class GetTaskByIdHandlerTests
             .Returns(project);
 
         taskItemRepository
-            .GetByIdAsync(
+            .GetByIdReadOnlyAsync(
                 taskItem.Id,
                 Arg.Any<CancellationToken>())
             .Returns(taskItem);
@@ -680,7 +680,7 @@ public sealed class GetTaskByIdHandlerTests
             .Returns(project);
 
         taskItemRepository
-            .GetByIdAsync(
+            .GetByIdReadOnlyAsync(
                 taskItem.Id,
                 Arg.Any<CancellationToken>())
             .Returns(taskItem);
@@ -809,7 +809,7 @@ public sealed class GetTaskByIdHandlerTests
 
         await taskItemRepository
             .DidNotReceive()
-            .GetByIdAsync(
+            .GetByIdReadOnlyAsync(
                 Arg.Any<Guid>(),
                 Arg.Any<CancellationToken>());
     }
