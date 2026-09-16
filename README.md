@@ -33,7 +33,7 @@ Implemented today:
 - task filtering, search, and deterministic sorting;
 - nullable reference types, analyzers, code-style checks, and warnings as errors.
 
-Production-readiness work is intentionally incremental. API-level integration tests, bounded querying, optimistic concurrency, health checks, consistency handling, structured logging, OpenTelemetry instrumentation, and authentication rate limiting are implemented. The final authentication, security, performance, and design reviews remain roadmap work.
+The planned production-readiness roadmap is complete for the current project scope. The repository now includes API-level integration coverage, bounded querying, optimistic concurrency, consistency handling, health checks, structured logging and correlation, OpenTelemetry instrumentation, authentication rate limiting, security-contract hardening, explicit EF Core tracking strategy, query-aligned PostgreSQL indexes, and documented architecture trade-offs.
 
 ---
 
@@ -1035,12 +1035,23 @@ Indexes are intentionally not added for every optional task filter or sort. Thei
 
 ---
 
-## Roadmap
+## Architecture decision records
 
-The next production-oriented stages are intentionally incremental:
+Key trade-offs are recorded under `docs/adr`:
 
-1. handler-dispatch refactoring only if constructor/registration growth justifies it;
-2. remaining short Architecture Decision Records under `docs/adr`.
+- [ADR 0001 — Keep authentication access-token-only](docs/adr/0001-access-token-only-authentication.md);
+- [ADR 0002 — Keep explicit handler dispatch](docs/adr/0002-keep-explicit-handler-dispatch.md);
+- [ADR 0003 — Use explicit version optimistic concurrency](docs/adr/0003-use-explicit-version-optimistic-concurrency.md).
+
+These decisions intentionally keep the project within modular-monolith scope. New infrastructure or indirection should be introduced only when a concrete requirement or measured bottleneck justifies it.
+
+---
+
+## Roadmap status
+
+The planned Middle/Middle+ backend roadmap for the current scope is complete.
+
+Future work is requirement-driven rather than checklist-driven. Examples include splitting controllers if the HTTP surface grows further, adding PostgreSQL trigram search if measured search workloads justify it, or introducing persistent authentication sessions if product requirements need revocation or silent renewal.
 
 ---
 
