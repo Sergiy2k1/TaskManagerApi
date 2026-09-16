@@ -217,8 +217,10 @@ public sealed class ProjectTaskFlowTests
         Assert.NotNull(createdTask);
 
         Assert.Equal(
-            $"/api/projects/{project.ProjectId}/tasks/{createdTask.TaskItemId}",
-            createTaskResponse.Headers.Location?.OriginalString);
+            new Uri(
+                client.BaseAddress!,
+                $"/api/projects/{project.ProjectId}/tasks/{createdTask.TaskItemId}"),
+            createTaskResponse.Headers.Location);
 
         Assert.Equal(
             project.ProjectId,
@@ -474,8 +476,10 @@ public sealed class ProjectTaskFlowTests
         Assert.NotNull(project);
 
         Assert.Equal(
-            $"/api/projects/{project.ProjectId}",
-            response.Headers.Location?.OriginalString);
+            new Uri(
+                client.BaseAddress!,
+                $"/api/projects/{project.ProjectId}"),
+            response.Headers.Location);
 
         return project;
     }
