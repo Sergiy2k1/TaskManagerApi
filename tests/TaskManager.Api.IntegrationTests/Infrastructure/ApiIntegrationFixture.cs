@@ -33,6 +33,18 @@ public sealed class ApiIntegrationFixture
             });
     }
 
+    public TaskManagerApiFactory CreateRateLimitedFactory(
+        int loginPermitLimit,
+        int registerPermitLimit,
+        int windowSeconds = 60)
+    {
+        return new TaskManagerApiFactory(
+            _container.GetConnectionString(),
+            loginPermitLimit,
+            registerPermitLimit,
+            windowSeconds);
+    }
+
     public async Task ResetDatabaseAsync(
         CancellationToken cancellationToken = default)
     {
@@ -68,6 +80,11 @@ public sealed class ApiIntegrationFixture
         _factory =
             new TaskManagerApiFactory(
                 _container.GetConnectionString());
+
+        // Start the shared server immediately so later isolated factories
+        // can override process-level test settings without changing this host.
+        using var client =
+            _factory.CreateClient();
     }
 
     public async ValueTask DisposeAsync()

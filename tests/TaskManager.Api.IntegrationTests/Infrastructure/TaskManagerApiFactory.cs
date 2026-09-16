@@ -16,7 +16,10 @@ public sealed class TaskManagerApiFactory
         "VGFza01hbmFnZXItYXBpLWludGVncmF0aW9uLXRlc3RzLXNpZ25pbmcta2V5LTIwMjY=";
 
     public TaskManagerApiFactory(
-        string connectionString)
+        string connectionString,
+        int loginPermitLimit = 1_000,
+        int registerPermitLimit = 1_000,
+        int windowSeconds = 60)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(
             connectionString);
@@ -45,6 +48,21 @@ public sealed class TaskManagerApiFactory
         Environment.SetEnvironmentVariable(
             "Jwt__AccessTokenLifetimeMinutes",
             "15");
+
+        Environment.SetEnvironmentVariable(
+            "RateLimiting__Authentication__LoginPermitLimit",
+            loginPermitLimit.ToString(
+                System.Globalization.CultureInfo.InvariantCulture));
+
+        Environment.SetEnvironmentVariable(
+            "RateLimiting__Authentication__RegisterPermitLimit",
+            registerPermitLimit.ToString(
+                System.Globalization.CultureInfo.InvariantCulture));
+
+        Environment.SetEnvironmentVariable(
+            "RateLimiting__Authentication__WindowSeconds",
+            windowSeconds.ToString(
+                System.Globalization.CultureInfo.InvariantCulture));
     }
 
     protected override void ConfigureWebHost(

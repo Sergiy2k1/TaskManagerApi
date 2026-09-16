@@ -21,6 +21,7 @@ Implemented today:
 - separate liveness and PostgreSQL-backed readiness probes;
 - structured request logging with correlation and W3C trace identifiers;
 - OpenTelemetry HTTP tracing, ASP.NET Core metrics, runtime metrics, and optional OTLP export;
+- per-client authentication rate limiting for login and registration;
 - EF Core migrations;
 - PostgreSQL persistence;
 - Testcontainers-based integration tests;
@@ -32,7 +33,7 @@ Implemented today:
 - task filtering, search, and deterministic sorting;
 - nullable reference types, analyzers, code-style checks, and warnings as errors.
 
-Production-readiness work is intentionally incremental. API-level integration tests, bounded querying, optimistic concurrency, health checks, consistency handling, structured logging, and OpenTelemetry instrumentation are implemented. Rate limiting and the final security/performance/design review remain roadmap work.
+Production-readiness work is intentionally incremental. API-level integration tests, bounded querying, optimistic concurrency, health checks, consistency handling, structured logging, OpenTelemetry instrumentation, and authentication rate limiting are implemented. The final authentication, security, performance, and design reviews remain roadmap work.
 
 ---
 
@@ -461,7 +462,8 @@ Current coverage verifies:
 - ProblemDetails status/title/detail/instance/trace-id semantics for representative 400/403/404/409 responses;
 - concurrent duplicate registration resolves to one successful create and one `409 Conflict` rather than a `500`;
 - request correlation is returned to clients and preserved when a valid `X-Correlation-ID` is supplied;
-- W3C `traceparent` propagation is preserved into ProblemDetails trace identifiers.
+- W3C `traceparent` propagation is preserved into ProblemDetails trace identifiers;
+- login and registration return `429 Too Many Requests` with `Retry-After` after their per-client limits are exceeded.
 
 These scenarios execute through HTTP, JWT authentication, authorization policies, controllers, application handlers, EF Core, and PostgreSQL.
 
@@ -968,16 +970,32 @@ The repository deliberately does not bundle Jaeger, Grafana, Prometheus, or an O
 
 ---
 
+## Authentication rate limiting
+
+The public authentication endpoints use ASP.NET Core rate limiting before their handlers execute:
+
+- `POST /api/auth/login` allows 10 requests per 60-second window per client IP;
+- `POST /api/auth/register` allows 5 requests per 60-second window per client IP.
+
+The policies use separate fixed-window buckets, so login traffic does not consume the registration budget and vice versa. Requests are not queued: once the limit is exhausted, the API returns `429 Too Many Requests` immediately together with `Retry-After`.
+
+The rejection body uses the same ProblemDetails pipeline as the rest of the API, including `traceId` and `correlationId`.
+
+The partition key is `HttpContext.Connection.RemoteIpAddress`. The application deliberately does not trust a client-supplied `X-Forwarded-For` header by itself. A deployment behind a reverse proxy must configure ASP.NET Core forwarded headers with explicit trusted proxy/network settings before relying on the original client IP for rate limiting.
+
+Rate limiting is a brute-force and abuse-control layer, not an account lockout mechanism. It reduces request pressure without storing authentication state or creating denial-of-service risk by permanently locking an account.
+
+---
+
 ## Roadmap
 
 The next production-oriented stages are intentionally incremental:
 
-1. ASP.NET Core rate limiting, especially for login/register;
-2. authentication/session improvements if justified;
-3. API/validation/security review;
-4. PostgreSQL and EF Core performance review;
-5. handler-dispatch refactoring only if constructor/registration growth justifies it;
-6. short Architecture Decision Records under `docs/adr`.
+1. authentication/session improvements if justified;
+2. API/validation/security review;
+3. PostgreSQL and EF Core performance review;
+4. handler-dispatch refactoring only if constructor/registration growth justifies it;
+5. short Architecture Decision Records under `docs/adr`.
 
 ---
 

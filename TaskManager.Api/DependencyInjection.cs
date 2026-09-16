@@ -5,6 +5,7 @@ using TaskManager.Api.Authentication;
 using TaskManager.Api.ErrorHandling;
 using TaskManager.Api.Health;
 using TaskManager.Api.Observability;
+using TaskManager.Api.RateLimiting;
 using TaskManager.Application.Abstractions.Authentication;
 using TaskManager.Infrastructure.Security;
 
@@ -45,6 +46,9 @@ public static class DependencyInjection
                 tags: ["ready"]);
 
         services.AddTaskManagerOpenTelemetry(
+            configuration);
+
+        services.AddTaskManagerRateLimiting(
             configuration);
 
         AddAuthentication(services, configuration);

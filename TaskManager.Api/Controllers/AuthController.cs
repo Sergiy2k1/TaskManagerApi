@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TaskManager.Api.Contracts.Auth;
+using TaskManager.Api.RateLimiting;
 using TaskManager.Application.Abstractions.Messaging;
 using TaskManager.Application.Users.Login;
 using TaskManager.Application.Users.Register;
@@ -31,6 +33,8 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting(
+        AuthenticationRateLimitPolicies.Register)]
     [ProducesResponseType(
         typeof(RegisterResponse),
         StatusCodes.Status201Created)]
@@ -38,6 +42,8 @@ public sealed class AuthController : ControllerBase
         StatusCodes.Status400BadRequest)]
     [ProducesResponseType(
         StatusCodes.Status409Conflict)]
+    [ProducesResponseType(
+        StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<RegisterResponse>> Register(
         RegisterRequest request,
         CancellationToken cancellationToken)
@@ -64,9 +70,13 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting(
+        AuthenticationRateLimitPolicies.Login)]
     [ProducesResponseType(
         typeof(LoginResponse),
         StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<LoginResponse>> Login(
         LoginRequest request,
         CancellationToken cancellationToken)
