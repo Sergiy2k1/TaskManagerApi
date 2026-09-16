@@ -34,7 +34,7 @@ public sealed class GetTaskCommentsHandler : IQueryHandler<GetTaskCommentsQuery,
 
         await _projectAccessPolicy.EnsureHasAccessAsync(project.OwnerId, project.Id, cancellationToken);
 
-        var task = await _taskRepository.GetByIdAsync(query.TaskItemId, cancellationToken);
+        var task = await _taskRepository.GetByIdReadOnlyAsync(query.TaskItemId, cancellationToken);
         if (task is null || task.ProjectId != project.Id) throw new ApplicationNotFoundException("Task was not found.");
 
         var page = await _commentRepository.GetActivePageByTaskAsync(task.Id, query.Page, query.PageSize, cancellationToken);

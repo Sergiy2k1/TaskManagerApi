@@ -9,6 +9,10 @@ public interface ITaskItemRepository
         Guid taskItemId,
         CancellationToken cancellationToken = default);
 
+    Task<TaskItem?> GetByIdReadOnlyAsync(
+        Guid taskItemId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<TaskItem>> GetByProjectAsync(
         Guid projectId,
         CancellationToken cancellationToken = default);

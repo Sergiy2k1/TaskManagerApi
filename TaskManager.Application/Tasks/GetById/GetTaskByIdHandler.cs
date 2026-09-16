@@ -42,10 +42,9 @@ public sealed class GetTaskByIdHandler
                 nameof(query.TaskItemId));
         }
 
-        var project =
-            await _projectRepository.GetByIdAsync(
-                query.ProjectId,
-                cancellationToken);
+        var project = await _projectRepository.GetByIdAsync(
+            query.ProjectId,
+            cancellationToken);
 
         if (project is null)
         {
@@ -58,13 +57,11 @@ public sealed class GetTaskByIdHandler
             project.Id,
             cancellationToken);
 
-        var taskItem =
-            await _taskItemRepository.GetByIdAsync(
-                query.TaskItemId,
-                cancellationToken);
+        var taskItem = await _taskItemRepository.GetByIdReadOnlyAsync(
+            query.TaskItemId,
+            cancellationToken);
 
-        if (taskItem is null ||
-            taskItem.ProjectId != project.Id)
+        if (taskItem is null || taskItem.ProjectId != project.Id)
         {
             throw new ApplicationNotFoundException(
                 "Task was not found.");
