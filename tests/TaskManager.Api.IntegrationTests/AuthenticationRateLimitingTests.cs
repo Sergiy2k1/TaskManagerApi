@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts.Auth;
 using TaskManager.Api.IntegrationTests.Infrastructure;
