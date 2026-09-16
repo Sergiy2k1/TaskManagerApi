@@ -76,7 +76,14 @@ public sealed class AuthController : ControllerBase
         typeof(LoginResponse),
         StatusCodes.Status200OK)]
     [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(
         StatusCodes.Status429TooManyRequests)]
+    [ResponseCache(
+        NoStore = true,
+        Location = ResponseCacheLocation.None)]
     public async Task<ActionResult<LoginResponse>> Login(
         LoginRequest request,
         CancellationToken cancellationToken)

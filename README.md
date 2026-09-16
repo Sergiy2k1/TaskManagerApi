@@ -1000,14 +1000,30 @@ The decision and the alternatives are documented in `docs/adr/0001-access-token-
 
 ---
 
+## API and security contract polish
+
+The final API/security review tightened behavior at the HTTP boundary without moving business rules into controllers:
+
+- bearer authentication challenges return generic RFC 7807 ProblemDetails instead of an empty 401 response;
+- authentication failures do not expose token parser/validation details;
+- bearer challenges retain the standard `WWW-Authenticate: Bearer` header;
+- login responses use `Cache-Control: no-store` so access tokens are not cacheable;
+- successful project and task creation responses include a `Location` header pointing to the canonical GET endpoint;
+- authentication ProblemDetails use the same `traceId` and `correlationId` customization as application errors.
+
+Validation remains layered deliberately: malformed HTTP/model-binding input is handled by ASP.NET Core, while business and domain constraints stay in Application/Domain. No second validation framework is added because the current rules do not justify duplicating them in FluentValidation.
+
+CORS and TLS termination are deployment-specific rather than enabled permissively in the application. The API does not add a wildcard CORS policy, and production HTTPS can be terminated by the trusted ingress/reverse proxy.
+
+---
+
 ## Roadmap
 
 The next production-oriented stages are intentionally incremental:
 
-1. API/validation/security review;
-2. PostgreSQL and EF Core performance review;
-3. handler-dispatch refactoring only if constructor/registration growth justifies it;
-4. remaining short Architecture Decision Records under `docs/adr`.
+1. PostgreSQL and EF Core performance review;
+2. handler-dispatch refactoring only if constructor/registration growth justifies it;
+3. remaining short Architecture Decision Records under `docs/adr`.
 
 ---
 

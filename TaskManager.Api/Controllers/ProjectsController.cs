@@ -131,8 +131,12 @@ public sealed class ProjectsController : ControllerBase
             IsArchived: result.IsArchived,
             CreatedAtUtc: result.CreatedAtUtc);
 
-        return StatusCode(
-            StatusCodes.Status201Created,
+        return CreatedAtAction(
+            nameof(GetById),
+            new
+            {
+                projectId = result.ProjectId
+            },
             response);
     }
 

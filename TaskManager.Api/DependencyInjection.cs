@@ -113,6 +113,64 @@ public static class DependencyInjection
             .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;
+                options.Events = new JwtBearerEvents
+                {
+                    OnChallenge = async context =>
+                    {
+                        context.HandleResponse();
+
+                        context.Response.StatusCode =
+                            StatusCodes.Status401Unauthorized;
+
+                        context.Response.Headers.WWWAuthenticate =
+                            JwtBearerDefaults.AuthenticationScheme;
+
+                        var problemDetailsService =
+                            context.HttpContext.RequestServices
+                                .GetRequiredService<IProblemDetailsService>();
+
+                        await problemDetailsService.WriteAsync(
+                            new ProblemDetailsContext
+                            {
+                                HttpContext = context.HttpContext,
+                                ProblemDetails = new ProblemDetails
+                                {
+                                    Status =
+                                        StatusCodes.Status401Unauthorized,
+                                    Title = "Unauthorized",
+                                    Detail =
+                                        "Authentication is required.",
+                                    Instance =
+                                        context.HttpContext.Request.Path
+                                }
+                            });
+                    },
+                    OnForbidden = async context =>
+                    {
+                        context.Response.StatusCode =
+                            StatusCodes.Status403Forbidden;
+
+                        var problemDetailsService =
+                            context.HttpContext.RequestServices
+                                .GetRequiredService<IProblemDetailsService>();
+
+                        await problemDetailsService.WriteAsync(
+                            new ProblemDetailsContext
+                            {
+                                HttpContext = context.HttpContext,
+                                ProblemDetails = new ProblemDetails
+                                {
+                                    Status =
+                                        StatusCodes.Status403Forbidden,
+                                    Title = "Forbidden",
+                                    Detail =
+                                        "You do not have permission to access this resource.",
+                                    Instance =
+                                        context.HttpContext.Request.Path
+                                }
+                            });
+                    }
+                };
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,

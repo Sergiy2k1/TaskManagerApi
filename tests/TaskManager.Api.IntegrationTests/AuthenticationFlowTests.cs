@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc;
 using TaskManager.Api.Contracts;
 using TaskManager.Api.Contracts.Auth;
 using TaskManager.Api.IntegrationTests.Infrastructure;
@@ -63,6 +64,72 @@ public sealed class AuthenticationFlowTests
         Assert.Equal(
             HttpStatusCode.Unauthorized,
             response.StatusCode);
+
+        Assert.Contains(
+            response.Headers.WwwAuthenticate,
+            header =>
+                string.Equals(
+                    header.Scheme,
+                    "Bearer",
+                    StringComparison.OrdinalIgnoreCase));
+
+        var problem =
+            await response.Content
+                .ReadFromJsonAsync<ProblemDetails>(
+                    TestContext.Current.CancellationToken);
+
+        Assert.NotNull(problem);
+        Assert.Equal(
+            StatusCodes.Status401Unauthorized,
+            problem.Status);
+        Assert.Equal(
+            "Unauthorized",
+            problem.Title);
+        Assert.Equal(
+            "Authentication is required.",
+            problem.Detail);
+        Assert.True(
+            problem.Extensions.ContainsKey(
+                "traceId"));
+        Assert.True(
+            problem.Extensions.ContainsKey(
+                "correlationId"));
+    }
+
+    [Fact]
+    public async Task ProfileWithInvalidTokenReturnsGenericUnauthorizedProblemDetails()
+    {
+        using var client =
+            _fixture.CreateClient();
+
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue(
+                "Bearer",
+                "not-a-valid-jwt");
+
+        var response =
+            await client.GetAsync(
+                "/api/profile",
+                TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
+
+        var problem =
+            await response.Content
+                .ReadFromJsonAsync<ProblemDetails>(
+                    TestContext.Current.CancellationToken);
+
+        Assert.NotNull(problem);
+        Assert.Equal(
+            "Authentication is required.",
+            problem.Detail);
+
+        Assert.DoesNotContain(
+            "token",
+            problem.Detail,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -124,6 +191,9 @@ public sealed class AuthenticationFlowTests
         Assert.Equal(
             HttpStatusCode.OK,
             loginResponse.StatusCode);
+
+        Assert.True(
+            loginResponse.Headers.CacheControl?.NoStore);
 
         var login =
             await loginResponse.Content

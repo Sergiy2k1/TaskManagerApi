@@ -119,8 +119,13 @@ public sealed class TasksController : ControllerBase
                 DueDateUtc: result.DueDateUtc,
                 CreatedAtUtc: result.CreatedAtUtc);
 
-        return StatusCode(
-            StatusCodes.Status201Created,
+        return CreatedAtAction(
+            nameof(GetById),
+            new
+            {
+                projectId = result.ProjectId,
+                taskItemId = result.TaskItemId
+            },
             response);
     }
 

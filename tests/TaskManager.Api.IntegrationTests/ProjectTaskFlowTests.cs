@@ -217,6 +217,10 @@ public sealed class ProjectTaskFlowTests
         Assert.NotNull(createdTask);
 
         Assert.Equal(
+            $"/api/projects/{project.ProjectId}/tasks/{createdTask.TaskItemId}",
+            createTaskResponse.Headers.Location?.OriginalString);
+
+        Assert.Equal(
             project.ProjectId,
             createdTask.ProjectId);
 
@@ -468,6 +472,10 @@ public sealed class ProjectTaskFlowTests
                     cancellationToken);
 
         Assert.NotNull(project);
+
+        Assert.Equal(
+            $"/api/projects/{project.ProjectId}",
+            response.Headers.Location?.OriginalString);
 
         return project;
     }
