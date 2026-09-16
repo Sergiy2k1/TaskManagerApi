@@ -12,6 +12,13 @@ public sealed class ProjectMemberRepository : IProjectMemberRepository
     public ProjectMemberRepository(AppDbContext dbContext) => _dbContext = dbContext;
 
     public Task<ProjectMember?> GetByProjectAndUserAsync(Guid projectId, Guid userId, CancellationToken cancellationToken = default) =>
+        _dbContext.ProjectMembers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                member => member.ProjectId == projectId && member.UserId == userId,
+                cancellationToken);
+
+    public Task<ProjectMember?> GetByProjectAndUserForUpdateAsync(Guid projectId, Guid userId, CancellationToken cancellationToken = default) =>
         _dbContext.ProjectMembers.SingleOrDefaultAsync(
             member => member.ProjectId == projectId && member.UserId == userId,
             cancellationToken);

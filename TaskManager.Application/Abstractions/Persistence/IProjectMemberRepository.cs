@@ -10,6 +10,11 @@ public interface IProjectMemberRepository
         Guid userId,
         CancellationToken cancellationToken = default);
 
+    Task<ProjectMember?> GetByProjectAndUserForUpdateAsync(
+        Guid projectId,
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<ProjectMember>> GetActiveByProjectAsync(
         Guid projectId,
         CancellationToken cancellationToken = default);

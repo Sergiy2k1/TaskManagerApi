@@ -82,7 +82,7 @@ public sealed class RemoveProjectMemberHandler
 
         var targetMember =
             await _projectMemberRepository
-                .GetByProjectAndUserAsync(
+                .GetByProjectAndUserForUpdateAsync(
                     project.Id,
                     command.UserId,
                     cancellationToken);

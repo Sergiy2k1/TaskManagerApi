@@ -70,7 +70,7 @@ public sealed class RemoveProjectMemberHandlerTests
             .Returns(project);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 memberUserId,
                 cancellationToken)
@@ -203,7 +203,7 @@ public sealed class RemoveProjectMemberHandlerTests
             .Returns(managerMembership);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 targetUserId,
                 cancellationToken)
@@ -461,7 +461,7 @@ public sealed class RemoveProjectMemberHandlerTests
             .Returns(project);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 targetUserId,
                 cancellationToken)
@@ -551,7 +551,7 @@ public sealed class RemoveProjectMemberHandlerTests
             .Returns(project);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 targetUserId,
                 cancellationToken)
@@ -651,7 +651,7 @@ public sealed class RemoveProjectMemberHandlerTests
 
         await projectMemberRepository
             .DidNotReceive()
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 ownerId,
                 Arg.Any<CancellationToken>());

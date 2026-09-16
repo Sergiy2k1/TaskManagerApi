@@ -70,7 +70,7 @@ public sealed class ChangeProjectMemberRoleHandlerTests
             .Returns(project);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 memberUserId,
                 cancellationToken)
@@ -205,7 +205,7 @@ public sealed class ChangeProjectMemberRoleHandlerTests
             .Returns(managerMembership);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 memberUserId,
                 cancellationToken)
@@ -477,7 +477,7 @@ public sealed class ChangeProjectMemberRoleHandlerTests
             .Returns(project);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 targetUserId,
                 cancellationToken)
@@ -579,7 +579,7 @@ public sealed class ChangeProjectMemberRoleHandlerTests
 
         await projectMemberRepository
             .DidNotReceive()
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 ownerId,
                 Arg.Any<CancellationToken>());
@@ -646,7 +646,7 @@ public sealed class ChangeProjectMemberRoleHandlerTests
             .Returns(project);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 targetUserId,
                 cancellationToken)

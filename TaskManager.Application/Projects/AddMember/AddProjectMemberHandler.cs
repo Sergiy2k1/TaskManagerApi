@@ -100,7 +100,7 @@ public sealed class AddProjectMemberHandler
 
         var existingMember =
             await _projectMemberRepository
-                .GetByProjectAndUserAsync(
+                .GetByProjectAndUserForUpdateAsync(
                     project.Id,
                     user.Id,
                     cancellationToken);

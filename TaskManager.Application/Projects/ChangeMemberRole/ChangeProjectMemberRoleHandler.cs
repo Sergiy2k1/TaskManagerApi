@@ -90,7 +90,7 @@ public sealed class ChangeProjectMemberRoleHandler
 
         var targetMember =
             await _projectMemberRepository
-                .GetByProjectAndUserAsync(
+                .GetByProjectAndUserForUpdateAsync(
                     project.Id,
                     command.UserId,
                     cancellationToken);

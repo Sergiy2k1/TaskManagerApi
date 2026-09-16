@@ -71,7 +71,7 @@ public sealed class AddProjectMemberHandlerTests
             .Returns(targetUser);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 targetUser.Id,
                 Arg.Any<CancellationToken>())
@@ -205,7 +205,7 @@ public sealed class AddProjectMemberHandlerTests
             .Returns(targetUser);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 targetUser.Id,
                 Arg.Any<CancellationToken>())
@@ -607,7 +607,7 @@ public sealed class AddProjectMemberHandlerTests
             .Returns(targetUser);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 targetUser.Id,
                 Arg.Any<CancellationToken>())
@@ -726,7 +726,7 @@ public sealed class AddProjectMemberHandlerTests
             .Returns(targetUser);
 
         projectMemberRepository
-            .GetByProjectAndUserAsync(
+            .GetByProjectAndUserForUpdateAsync(
                 project.Id,
                 targetUser.Id,
                 Arg.Any<CancellationToken>())
