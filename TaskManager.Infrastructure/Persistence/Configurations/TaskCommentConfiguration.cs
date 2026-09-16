@@ -58,9 +58,15 @@ public sealed class TaskCommentConfiguration
             .HasConstraintName(
                 "fk_task_comments_users_author_user_id");
 
-        builder.HasIndex(comment => comment.TaskItemId)
+        builder.HasIndex(
+                comment => new
+                {
+                    comment.TaskItemId,
+                    comment.CreatedAtUtc,
+                    comment.Id
+                })
             .HasDatabaseName(
-                "ix_task_comments_task_item_id");
+                "ix_task_comments_task_item_id_created_at_utc_id");
 
         builder.HasIndex(comment => comment.AuthorUserId)
             .HasDatabaseName(

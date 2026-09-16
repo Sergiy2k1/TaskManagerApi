@@ -3,6 +3,7 @@ using TaskManager.Application.Common.Exceptions;
 using TaskManager.Domain.Entities;
 using TaskManager.Domain.Enums;
 using TaskManager.Infrastructure.IntegrationTests.Database;
+using TaskManager.Infrastructure.Persistence;
 using Xunit;
 
 namespace TaskManager.Infrastructure.IntegrationTests.Persistence;
@@ -30,6 +31,34 @@ public sealed class PersistenceMappingTests
                     TestContext.Current.CancellationToken);
 
         Assert.Empty(pendingMigrations);
+    }
+
+    [Fact]
+    public async Task QueryPathIndexesAreApplied()
+    {
+        var cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        await using var dbContext =
+            _fixture.CreateDbContext();
+
+        Assert.True(
+            await IndexExistsAsync(
+                dbContext,
+                "ix_task_items_project_id_created_at_utc_id",
+                cancellationToken));
+
+        Assert.True(
+            await IndexExistsAsync(
+                dbContext,
+                "ix_task_comments_task_item_id_created_at_utc_id",
+                cancellationToken));
+
+        Assert.True(
+            await IndexExistsAsync(
+                dbContext,
+                "ix_project_members_active_project_joined_user",
+                cancellationToken));
     }
 
     [Fact]
@@ -169,6 +198,41 @@ public sealed class PersistenceMappingTests
 
         Assert.False(
             persistedComment.IsDeleted);
+    }
+
+    private static async Task<bool> IndexExistsAsync(
+        AppDbContext dbContext,
+        string indexName,
+        CancellationToken cancellationToken)
+    {
+        await dbContext.Database.OpenConnectionAsync(
+            cancellationToken);
+
+        await using var command =
+            dbContext.Database
+                .GetDbConnection()
+                .CreateCommand();
+
+        command.CommandText =
+            "SELECT to_regclass(@index_name) IS NOT NULL;";
+
+        var parameter =
+            command.CreateParameter();
+
+        parameter.ParameterName =
+            "index_name";
+
+        parameter.Value =
+            $"public.{indexName}";
+
+        command.Parameters.Add(
+            parameter);
+
+        var result =
+            await command.ExecuteScalarAsync(
+                cancellationToken);
+
+        return result is true;
     }
 
     [Fact]

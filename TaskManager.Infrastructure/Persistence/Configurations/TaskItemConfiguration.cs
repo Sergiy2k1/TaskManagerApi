@@ -91,9 +91,15 @@ public sealed class TaskItemConfiguration
             .HasConstraintName(
                 "fk_task_items_users_assignee_id");
 
-        builder.HasIndex(task => task.ProjectId)
+        builder.HasIndex(
+                task => new
+                {
+                    task.ProjectId,
+                    task.CreatedAtUtc,
+                    task.Id
+                })
             .HasDatabaseName(
-                "ix_task_items_project_id");
+                "ix_task_items_project_id_created_at_utc_id");
 
         builder.HasIndex(task => task.CreatedByUserId)
             .HasDatabaseName(

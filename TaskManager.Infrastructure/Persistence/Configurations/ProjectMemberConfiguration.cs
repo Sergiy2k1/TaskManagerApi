@@ -69,6 +69,18 @@ public sealed class ProjectMemberConfiguration
             .HasDatabaseName(
                 "ux_project_members_project_id_user_id");
 
+        builder.HasIndex(
+                member => new
+                {
+                    member.ProjectId,
+                    member.JoinedAtUtc,
+                    member.UserId
+                })
+            .HasFilter(
+                "removed_at_utc IS NULL")
+            .HasDatabaseName(
+                "ix_project_members_active_project_joined_user");
+
         builder.HasIndex(member => member.UserId)
             .HasDatabaseName(
                 "ix_project_members_user_id");

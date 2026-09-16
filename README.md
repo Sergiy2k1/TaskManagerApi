@@ -829,7 +829,7 @@ Persistence behavior is tested against the same database family used by the appl
 
 ### Explicit tracking strategy
 
-Read-only list queries use no-tracking where appropriate; mutation flows use tracked entities. Further read-path optimization and projection work is part of the performance roadmap.
+Read-only list queries and lookup paths use no-tracking where appropriate; mutation flows use explicitly tracked lookup methods. Task and project-member repositories keep the read/write distinction visible instead of relying on accidental ChangeTracker behavior.
 
 ### Security-aware resource authorization
 
@@ -1017,13 +1017,30 @@ CORS and TLS termination are deployment-specific rather than enabled permissivel
 
 ---
 
+## EF Core and PostgreSQL performance review
+
+The persistence pass focuses on observed query shapes rather than adding indexes for every filterable column.
+
+Read-only single-resource lookups use `AsNoTracking()`, while handlers that mutate a `TaskItem` or `ProjectMember` use explicit tracked lookup methods. This reduces unnecessary ChangeTracker work without risking detached updates.
+
+The stable paged access paths have matching B-tree indexes:
+
+- tasks: `(project_id, created_at_utc, id)`;
+- comments: `(task_item_id, created_at_utc, id)`;
+- active project members: partial index `(project_id, joined_at_utc, user_id) WHERE removed_at_utc IS NULL`.
+
+The task/comment composite indexes replace simpler foreign-key-prefix indexes, so they still support lookups by the leading foreign key while also helping the deterministic paging order. The membership index is additional because the unique `(project_id, user_id)` index is still required as a consistency constraint.
+
+Indexes are intentionally not added for every optional task filter or sort. Their selectivity and combinations depend on real workload data, and maintaining many speculative indexes would increase write and storage cost. Likewise, `ILIKE '%term%'` search is not given a B-tree index; if search volume or dataset size makes it necessary, PostgreSQL `pg_trgm` with a GIN/GiST index would be the next measured optimization.
+
+---
+
 ## Roadmap
 
 The next production-oriented stages are intentionally incremental:
 
-1. PostgreSQL and EF Core performance review;
-2. handler-dispatch refactoring only if constructor/registration growth justifies it;
-3. remaining short Architecture Decision Records under `docs/adr`.
+1. handler-dispatch refactoring only if constructor/registration growth justifies it;
+2. remaining short Architecture Decision Records under `docs/adr`.
 
 ---
 
