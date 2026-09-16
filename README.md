@@ -463,7 +463,8 @@ Current coverage verifies:
 - concurrent duplicate registration resolves to one successful create and one `409 Conflict` rather than a `500`;
 - request correlation is returned to clients and preserved when a valid `X-Correlation-ID` is supplied;
 - W3C `traceparent` propagation is preserved into ProblemDetails trace identifiers;
-- login and registration return `429 Too Many Requests` with `Retry-After` after their per-client limits are exceeded.
+- login and registration return `429 Too Many Requests` with `Retry-After` after their per-client limits are exceeded;
+- unknown-email and wrong-password login failures expose the same `401 Unauthorized` response, avoiding account enumeration through error details.
 
 These scenarios execute through HTTP, JWT authentication, authorization policies, controllers, application handlers, EF Core, and PostgreSQL.
 
@@ -987,15 +988,26 @@ Rate limiting is a brute-force and abuse-control layer, not an account lockout m
 
 ---
 
+## Authentication session model
+
+The authentication/session review intentionally keeps the project access-token-only.
+
+The API issues short-lived JWT access tokens with a default 15-minute lifetime. Refresh tokens are not added merely to expand the feature list: a sound refresh-token design would require persistent session state, hashed refresh-token storage, rotation, reuse detection, revocation/logout semantics, cleanup, migrations, concurrency handling, and additional security tests.
+
+For the current project scope, requiring a new login after access-token expiry is the simpler and safer trade-off. The limitation is explicit: an already-issued token cannot be revoked immediately when a user is deactivated or changes a password; its remaining validity is bounded by the short token lifetime.
+
+The decision and the alternatives are documented in `docs/adr/0001-access-token-only-authentication.md`.
+
+---
+
 ## Roadmap
 
 The next production-oriented stages are intentionally incremental:
 
-1. authentication/session improvements if justified;
-2. API/validation/security review;
-3. PostgreSQL and EF Core performance review;
-4. handler-dispatch refactoring only if constructor/registration growth justifies it;
-5. short Architecture Decision Records under `docs/adr`.
+1. API/validation/security review;
+2. PostgreSQL and EF Core performance review;
+3. handler-dispatch refactoring only if constructor/registration growth justifies it;
+4. remaining short Architecture Decision Records under `docs/adr`.
 
 ---
 
